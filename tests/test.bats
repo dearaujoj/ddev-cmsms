@@ -6,6 +6,7 @@ setup() {
   export PROJNAME=test-ddev-cmsms
   export TESTDIR=~/tmp/${PROJNAME}
   export DDEV_NONINTERACTIVE=true
+  export CMSMS_TEST_VERSION=${CMSMS_TEST_VERSION:-2.2.22}
   bats_load_library bats-support
   bats_load_library bats-assert
   bats_load_library bats-file
@@ -21,6 +22,8 @@ setup() {
   ddev config --project-name=${PROJNAME} --project-type=php --docroot=.cmsms/public
   run ddev add-on get ${DIR}
   assert_success
+  [ -z "${CMSMS_TEST_PHP:-}" ] || ddev config --php-version=${CMSMS_TEST_PHP}
+  ddev cmsms setup --type module --name SkeletonTest --version ${CMSMS_TEST_VERSION} --yes
   assert_file_exists .ddev/commands/web/cmsms-install
   assert_file_exists .ddev/commands/host/cmsms
   assert_file_exists .ddev/config.cmsms.yaml
@@ -38,10 +41,10 @@ setup() {
 
 @test "fetch stage downloads and unpacks the installer phar into the cache" {
   cd ${TESTDIR}
-  # no setup yet: the stage falls back to versions.json default (2.2.22)
+  # setup already ran in the bootstrap test; re-fetching is an idempotent no-op
   run ddev cmsms-install fetch
   assert_success
-  run ddev exec test -s /mnt/ddev_config/cmsms/cache/cmsms-2.2.22/installer.php
+  run ddev exec test -s /mnt/ddev_config/cmsms/cache/cmsms-${CMSMS_TEST_VERSION}/installer.php
   assert_success
 }
 
@@ -90,7 +93,7 @@ setup() {
 
 @test "non-interactive setup writes the project config" {
   cd ${TESTDIR}
-  run ddev cmsms setup --type module --name SkeletonTest --version 2.2.22 --yes
+  run ddev cmsms setup --type module --name SkeletonTest --version ${CMSMS_TEST_VERSION} --yes
   assert_success
   assert_file_exists .ddev/config.cmsms-project.yaml
   run grep -q "CMSMS_EXT_NAME=SkeletonTest" .ddev/config.cmsms-project.yaml
@@ -102,7 +105,7 @@ setup() {
   ddev restart -y >/dev/null   # pick up the new env vars
   run ddev cmsms status
   assert_success
-  assert_output --partial "2.2.22"
+  assert_output --partial "${CMSMS_TEST_VERSION}"
   assert_output --partial "SkeletonTest"
   assert_output --partial "installed"
 }
