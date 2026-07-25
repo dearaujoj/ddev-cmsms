@@ -31,9 +31,15 @@ cmd_setup() {
   local type="" name="" version="" yes=0
   while [ $# -gt 0 ]; do
     case "$1" in
-      --type) type=$2; shift 2 ;;
-      --name) name=$2; shift 2 ;;
-      --version) version=$2; shift 2 ;;
+      --type)
+        case "${2:-}" in ''|--*) echo "missing value for --type" >&2; exit 2 ;; esac
+        type=$2; shift 2 ;;
+      --name)
+        case "${2:-}" in ''|--*) echo "missing value for --name" >&2; exit 2 ;; esac
+        name=$2; shift 2 ;;
+      --version)
+        case "${2:-}" in ''|--*) echo "missing value for --version" >&2; exit 2 ;; esac
+        version=$2; shift 2 ;;
       --yes|-y) yes=1; shift ;;
       *) echo "unknown option $1" >&2; exit 2 ;;
     esac
@@ -43,12 +49,18 @@ cmd_setup() {
   dtype=$(detect_type); dname=$(detect_name "$dtype" || true); dversion=$(default_version)
 
   if [ "$yes" != 1 ]; then
-    read -r -p "Extension type [module/theme/plugin] (detected: $dtype): " type_in
-    type=${type:-${type_in:-$dtype}}
-    read -r -p "Extension name (detected: ${dname:-none}): " name_in
-    name=${name:-${name_in:-$dname}}
-    read -r -p "CMSMS version (default: $dversion): " version_in
-    version=${version:-${version_in:-$dversion}}
+    if [ -z "$type" ]; then
+      read -r -p "Extension type [module/theme/plugin] (detected: $dtype): " type_in
+      type=${type_in:-$dtype}
+    fi
+    if [ -z "$name" ]; then
+      read -r -p "Extension name (detected: ${dname:-none}): " name_in
+      name=${name_in:-$dname}
+    fi
+    if [ -z "$version" ]; then
+      read -r -p "CMSMS version (default: $dversion): " version_in
+      version=${version_in:-$dversion}
+    fi
   else
     type=${type:-$dtype}; name=${name:-$dname}; version=${version:-$dversion}
   fi
@@ -56,11 +68,23 @@ cmd_setup() {
   case "$type" in module|theme|plugin) ;; *) echo "invalid type '$type'" >&2; exit 2 ;; esac
   [ -n "$name" ] || { echo "could not determine extension name — pass --name" >&2; exit 2; }
 
+  # name must be CMSMS module/class-name-safe: this value is written into the
+  # generated YAML and later interpolated into a SQL literal by cmd_status, so
+  # keeping it restricted to [A-Za-z0-9_] is what makes that interpolation safe.
+  if ! [[ "$name" =~ ^[A-Za-z0-9_]+$ ]]; then
+    echo "invalid name '$name': must match ^[A-Za-z0-9_]+\$" >&2
+    exit 2
+  fi
+  if ! [[ "$version" =~ ^[0-9][0-9.]*([.-][A-Za-z0-9.]+)?$ ]]; then
+    echo "invalid version '$version': must match ^[0-9][0-9.]*([.-][A-Za-z0-9.]+)?\$" >&2
+    exit 2
+  fi
+
   # non-blocking sanity warning
   case "$type" in
-    module) [ -f "./$name.module.php" ] || echo "warning: ./$name.module.php not found (yet?)" ;;
-    plugin) ls ./function.*.php >/dev/null 2>&1 || echo "warning: no function.*.php found (yet?)" ;;
-    theme)  [ -f "./${name}Theme.php" ] || [ -f "./$name/${name}Theme.php" ] || echo "warning: ${name}Theme.php not found (yet?)" ;;
+    module) [ -f "./$name.module.php" ] || echo "warning: ./$name.module.php not found (yet?)" >&2 ;;
+    plugin) ls ./function.*.php >/dev/null 2>&1 || echo "warning: no function.*.php found (yet?)" >&2 ;;
+    theme)  [ -f "./${name}Theme.php" ] || [ -f "./$name/${name}Theme.php" ] || echo "warning: ${name}Theme.php not found (yet?)" >&2 ;;
   esac
 
   cat > "$PROJECT_CONFIG" <<EOF
@@ -89,8 +113,16 @@ cmd_status() {
   echo "Extension:       ${ext_type:-unset} / ${ext_name:-unset}"
   if [ -n "$ext_name" ] && [ "$ext_type" = "module" ]; then
     if ddev exec test -e "/var/www/html/.cmsms/public/modules/$ext_name" >/dev/null 2>&1; then link_ok=linked; else link_ok="NOT linked"; fi
-    mod_ok=$(ddev mysql -N -e "SELECT COUNT(*) FROM cms_modules WHERE module_name='$ext_name'" 2>/dev/null || echo 0)
-    [ "$mod_ok" = "1" ] && mod_ok=installed || mod_ok="NOT installed"
+    # $ext_name is interpolated unescaped into the SQL literal below. This is safe
+    # because cmd_setup only ever writes names matching [A-Za-z0-9_] into the config
+    # (see the validation there); re-check the invariant here as defense in depth in
+    # case CMSMS_EXT_NAME was set by hand-editing config.cmsms-project.yaml instead.
+    if [[ "$ext_name" =~ ^[A-Za-z0-9_]+$ ]]; then
+      mod_ok=$(ddev mysql -N -e "SELECT COUNT(*) FROM cms_modules WHERE module_name='$ext_name'" 2>/dev/null || echo 0)
+      [ "$mod_ok" = "1" ] && mod_ok=installed || mod_ok="NOT installed"
+    else
+      mod_ok="unknown (invalid CMSMS_EXT_NAME)"
+    fi
     echo "Module link:     $link_ok"
     echo "Module in DB:    $mod_ok"
   fi
