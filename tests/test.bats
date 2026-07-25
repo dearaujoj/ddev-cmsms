@@ -72,3 +72,18 @@ setup() {
   run bash -c "curl -sfL https://${PROJNAME}.ddev.site/admin/login.php"
   assert_success
 }
+
+@test "link stage symlinks the module and installs it in the DB" {
+  cd ${TESTDIR}
+  # setup does not exist until Task 7, so pass the env inline via the script path
+  run ddev exec "CMSMS_EXT_TYPE=module CMSMS_EXT_NAME=SkeletonTest bash /mnt/ddev_config/commands/web/cmsms-install link"
+  assert_success
+  run ddev exec test -L /var/www/html/.cmsms/public/modules/SkeletonTest/SkeletonTest.module.php
+  assert_success
+  run ddev exec test -e /var/www/html/.cmsms/public/modules/SkeletonTest/.cmsms
+  assert_failure   # exclusion list prevents the symlink cycle
+  run bash -c "ddev mysql -N -e \"SELECT COUNT(*) FROM cms_modules WHERE module_name='SkeletonTest'\""
+  assert_output "1"
+  run bash -c "curl -sfL -o /dev/null -w '%{http_code}' https://${PROJNAME}.ddev.site/"
+  assert_output "200"
+}

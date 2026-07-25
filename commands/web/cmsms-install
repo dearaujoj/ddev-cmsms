@@ -94,7 +94,65 @@ stage_db() {
   php "$PAYLOAD_DIR/install.php" "$DOCROOT" "$INSTALLER_DIR/app" "${DDEV_SITENAME:-CMSMS Dev Site}" \
     || die "database install failed — fix the error above and re-run 'ddev exec cmsms-install db' (safe to re-run)"
 }
-stage_link()  { die "link: TODO (Task 6)"; }
+# Per-entry relative symlinks from $2 (real dir) up $3 levels to project root,
+# skipping the exclusion list. Avoids the modules/<Name> -> repo-root cycle.
+link_entries() {
+  local dest=$1 updots=$2 entry base skip
+  local exclude="${CMSMS_LINK_EXCLUDE:-.ddev .cmsms .git .gitignore dist docs}"
+  mkdir -p "$dest"
+  for entry in "$PROJECT_ROOT"/* "$PROJECT_ROOT"/.[!.]*; do
+    [ -e "$entry" ] || continue
+    base=$(basename "$entry")
+    skip=0
+    for x in $exclude; do [ "$base" = "$x" ] && skip=1 && break; done
+    [ "$skip" = 1 ] && continue
+    ln -sfn "$updots/$base" "$dest/$base"
+  done
+}
+
+stage_link() {
+  is_installed || die "link: site not installed yet (run 'cmsms-install db' first)"
+  [ -n "${CMSMS_EXT_TYPE:-}" ] || die "link: CMSMS_EXT_TYPE not set — run 'ddev cmsms setup'"
+  [ -n "${CMSMS_EXT_NAME:-}" ] || die "link: CMSMS_EXT_NAME not set — run 'ddev cmsms setup'"
+
+  case "$CMSMS_EXT_TYPE" in
+    module)
+      log "link: linking module $CMSMS_EXT_NAME"
+      # modules/<Name>/<entry> -> ../../../../<entry>  (modules/Name -> public -> .cmsms -> html)
+      link_entries "$DOCROOT/modules/$CMSMS_EXT_NAME" "../../../.."
+      php "$PAYLOAD_DIR/register-extension.php" "$DOCROOT" module "$CMSMS_EXT_NAME" || die "module registration failed"
+      ;;
+    plugin)
+      log "link: linking plugin file(s)"
+      local found=0
+      for f in "$PROJECT_ROOT"/function.*.php "$PROJECT_ROOT"/modifier.*.php; do
+        [ -e "$f" ] || continue
+        found=1
+        # plugins/<file> -> ../../../<file>  (plugins -> public -> .cmsms -> html)
+        ln -sfn "../../../$(basename "$f")" "$DOCROOT/plugins/$(basename "$f")"
+      done
+      [ "$found" = 1 ] || die "no function.*.php / modifier.*.php found at project root"
+      ;;
+    theme)
+      log "link: linking admin theme $CMSMS_EXT_NAME"
+      if [ -f "$PROJECT_ROOT/$CMSMS_EXT_NAME/${CMSMS_EXT_NAME}Theme.php" ]; then
+        # theme lives in a subdirectory: safe to link the whole dir.
+        # Link sits IN admin/themes/, so 4 levels up: themes -> admin -> public -> .cmsms = html
+        ln -sfn "../../../../$CMSMS_EXT_NAME" "$DOCROOT/admin/themes/$CMSMS_EXT_NAME"
+      elif [ -f "$PROJECT_ROOT/${CMSMS_EXT_NAME}Theme.php" ]; then
+        # theme files at repo root: per-entry links to avoid the cycle
+        link_entries "$DOCROOT/admin/themes/$CMSMS_EXT_NAME" "../../../../.."
+      else
+        die "could not find ${CMSMS_EXT_NAME}Theme.php at repo root or in $CMSMS_EXT_NAME/"
+      fi
+      php "$PAYLOAD_DIR/register-extension.php" "$DOCROOT" theme "$CMSMS_EXT_NAME" || die "theme registration failed"
+      ;;
+    *)
+      die "unknown CMSMS_EXT_TYPE '$CMSMS_EXT_TYPE' (expected module|theme|plugin)"
+      ;;
+  esac
+  log "link: done"
+}
 
 stage_all() {
   if is_installed; then
