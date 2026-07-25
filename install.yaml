@@ -1,0 +1,26 @@
+name: cmsms
+
+project_files:
+  - commands/host/cmsms
+  - commands/web/cmsms-install
+  - config.cmsms.yaml
+  - cmsms
+
+dependencies:
+  - ddev/ddev-phpmyadmin
+
+post_install_actions:
+  - |
+    #ddev-description:Add disposable CMSMS dirs to .gitignore
+    for entry in ".cmsms/" ".ddev/cmsms/cache/"; do
+      if ! grep -qxF "$entry" ../.gitignore 2>/dev/null; then
+        printf "%s\n" "$entry" >> ../.gitignore
+      fi
+    done
+
+removal_actions:
+  - |
+    #ddev-description:Remove cmsms payload
+    rm -rf cmsms
+
+ddev_version_constraint: '>= v1.24.0'

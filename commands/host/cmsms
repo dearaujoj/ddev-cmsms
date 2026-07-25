@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+#ddev-generated
+## Description: CMSMS dev helpers (setup, admin, reinstall, package, status)
+## Usage: cmsms <subcommand>
+## Example: ddev cmsms setup
+echo "ddev cmsms: not implemented yet"
+exit 1

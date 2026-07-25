@@ -1,0 +1,10 @@
+#ddev-generated
+webserver_type: apache-fpm
+database:
+  type: mariadb
+  version: "10.11"
+upload_dirs:
+  - uploads
+hooks:
+  post-start:
+    - exec: bash /mnt/ddev_config/commands/web/cmsms-install all

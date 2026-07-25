@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+#ddev-generated
+## Description: Unattended CMSMS installer pipeline (stages: all fetch files db link)
+## Usage: cmsms-install [stage]
+## Example: ddev cmsms-install all
+echo "[cmsms-install] not configured yet (stage: ${1:-all})"
+exit 0
