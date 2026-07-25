@@ -1,0 +1,10 @@
+#ddev-generated
+# DDEV mounts the whole .ddev directory read-only on the web container
+# (".:/mnt/ddev_config:ro" in .ddev-docker-compose-base.yaml). cmsms-install
+# needs to write the downloaded installer cache under
+# /mnt/ddev_config/cmsms/cache, so re-mount just that subpath read-write,
+# same pattern ddev-phpmyadmin uses for its own ".:/mnt/ddev_config" mount.
+services:
+  web:
+    volumes:
+      - ./cmsms/cache:/mnt/ddev_config/cmsms/cache

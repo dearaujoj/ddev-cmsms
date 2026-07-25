@@ -3,5 +3,83 @@
 ## Description: Unattended CMSMS installer pipeline (stages: all fetch files db link)
 ## Usage: cmsms-install [stage]
 ## Example: ddev cmsms-install all
-echo "[cmsms-install] not configured yet (stage: ${1:-all})"
-exit 0
+set -eu -o pipefail
+
+PROJECT_ROOT=/var/www/html
+DOCROOT=$PROJECT_ROOT/.cmsms/public
+INSTALLER_DIR=$PROJECT_ROOT/.cmsms/installer
+PAYLOAD_DIR=/mnt/ddev_config/cmsms
+CACHE_DIR=$PAYLOAD_DIR/cache
+
+CMSMS_VERSION="${CMSMS_VERSION:-$(jq -r '.default' $PAYLOAD_DIR/versions.json)}"
+VCACHE=$CACHE_DIR/cmsms-$CMSMS_VERSION
+
+log()  { echo "[cmsms-install] $*"; }
+die()  { echo "[cmsms-install] ERROR: $*" >&2; exit 1; }
+
+is_installed() {
+  [ -f "$DOCROOT/config.php" ] || return 1
+  mysql -h db -u db -pdb db -N -e 'SELECT version FROM cms_version' >/dev/null 2>&1
+}
+
+resolve_url() {
+  if [ -n "${CMSMS_INSTALLER_URL:-}" ]; then
+    echo "$CMSMS_INSTALLER_URL"
+    return
+  fi
+  local url
+  url=$(jq -r --arg v "$CMSMS_VERSION" '.versions[$v].url // empty' "$PAYLOAD_DIR/versions.json")
+  [ -n "$url" ] || die "version $CMSMS_VERSION not in versions.json (available: $(jq -r '.versions|keys|join(", ")' "$PAYLOAD_DIR/versions.json")). Set CMSMS_INSTALLER_URL to a direct cmsms-X.Y.Z-install.zip URL to override."
+  echo "$url"
+}
+
+stage_fetch() {
+  if [ -s "$VCACHE/installer.php" ]; then
+    log "fetch: installer for $CMSMS_VERSION already cached"
+    return 0
+  fi
+  local url zip
+  url=$(resolve_url)
+  mkdir -p "$VCACHE"
+  zip=$VCACHE/install.zip
+  log "fetch: downloading $url"
+  curl -fSL -o "$zip" "$url" \
+    || die "download failed from $url — set CMSMS_INSTALLER_URL to a working mirror or local file"
+  log "fetch: unpacking installer"
+  unzip -oq "$zip" -d "$VCACHE"
+  local phar
+  phar=$(ls "$VCACHE"/cmsms-*-install.php 2>/dev/null | head -1)
+  [ -n "$phar" ] || die "no cmsms-*-install.php found inside $zip"
+  mv "$phar" "$VCACHE/installer.php"
+  rm -f "$zip"
+  log "fetch: cached at $VCACHE/installer.php"
+}
+
+stage_files() { die "files: TODO (Task 4)"; }
+stage_db()    { die "db: TODO (Task 5)"; }
+stage_link()  { die "link: TODO (Task 6)"; }
+
+stage_all() {
+  if is_installed; then
+    log "already installed (CMSMS $(mysql -h db -u db -pdb db -N -e 'SELECT version FROM cms_version' 2>/dev/null)) — nothing to do"
+    return 0
+  fi
+  if [ -z "${CMSMS_EXT_TYPE:-}" ]; then
+    log "no CMSMS_EXT_TYPE set — run 'ddev cmsms setup' first, then 'ddev restart'"
+    return 0
+  fi
+  stage_fetch
+  stage_files
+  stage_db
+  stage_link
+  log "install complete: ${DDEV_PRIMARY_URL:-site} (admin/admin at ${DDEV_PRIMARY_URL:-}/admin)"
+}
+
+case "${1:-all}" in
+  all)   stage_all ;;
+  fetch) stage_fetch ;;
+  files) stage_files ;;
+  db)    stage_db ;;
+  link)  stage_link ;;
+  *) die "unknown stage '$1' (stages: all fetch files db link)" ;;
+esac

@@ -4,6 +4,7 @@ project_files:
   - commands/host/cmsms
   - commands/web/cmsms-install
   - config.cmsms.yaml
+  - docker-compose.cmsms.yaml
   - cmsms
 
 dependencies:

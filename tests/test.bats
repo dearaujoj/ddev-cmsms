@@ -35,3 +35,12 @@ setup() {
   run ddev cmsms-install all
   assert_success
 }
+
+@test "fetch stage downloads and unpacks the installer phar into the cache" {
+  cd ${TESTDIR}
+  # no setup yet: the stage falls back to versions.json default (2.2.22)
+  run ddev cmsms-install fetch
+  assert_success
+  run ddev exec test -s /mnt/ddev_config/cmsms/cache/cmsms-2.2.22/installer.php
+  assert_success
+}
