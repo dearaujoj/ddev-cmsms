@@ -23,9 +23,9 @@ Admin credentials default to `admin` / `admin`. Override them with the `CMSMS_AD
 
 | Command | Description |
 | --- | --- |
-| `ddev cmsms setup [--type module\|plugin\|theme] [--name NAME] [--version X.Y.Z] [--yes]` | Detects (or accepts) the extension type/name and CMSMS version, validates them, and writes `.ddev/config.cmsms-project.yaml`. Without `--yes`, prompts interactively for anything not passed as a flag, offering the auto-detected value as the default. `--yes` runs fully non-interactively, falling back to auto-detected values for anything not passed. |
-| `ddev cmsms admin` | Prints the admin credentials (`admin`/`admin` by default) and opens `/admin` in your browser. |
-| `ddev cmsms status` | Reports the installed CMSMS core version vs. the configured one, the extension type/name, whether it's symlinked, and whether it's registered in the database. |
+| `ddev cmsms setup [--type module\|plugin\|theme] [--name NAME] [--version X.Y.Z] [--yes\|-y]` | Detects (or accepts) the extension type/name and CMSMS version, validates them, and writes `.ddev/config.cmsms-project.yaml`. Without `--yes`, prompts interactively for anything not passed as a flag, offering the auto-detected value as the default. `--yes`/`-y` runs fully non-interactively, falling back to auto-detected values for anything not passed. |
+| `ddev cmsms admin` | Prints the actual admin credentials (`admin`/`admin` unless overridden, read from the running container) and opens `/admin` in your browser. |
+| `ddev cmsms status` | Reports the installed CMSMS core version vs. the configured one and the extension type/name; for module projects, also reports whether it's symlinked and registered in the database. |
 | `ddev cmsms reinstall [--yes]` | Drops the database and clears the core/installer files (keeping the download cache and `uploads/`), then re-runs the full install. Prompts for confirmation unless `--yes`/`-y` is passed — this is destructive. |
 | `ddev cmsms package` | Module projects only. Builds the distributable module XML via the module's own `CreateXMLPackage()`, written to `dist/<Name>-<version>.xml`. |
 
@@ -86,7 +86,7 @@ ddev launch -m
 
 CMSMS's official installer is a self-extracting phar that runs a browser wizard and explicitly refuses to run non-interactively from the CLI. `ddev-cmsms` sidesteps the wizard entirely: it extracts the phar's bundled core and installer app, then includes the installer's own `app/install/*.php` scripts (schema, base data, admin account, content, system modules) directly inside a small PHP driver that reconstructs the scope and globals they expect — the same steps the wizard's `wizard_step8`/`wizard_step9` perform, without a browser in the loop.
 
-Your extension isn't copied into the core; instead, each top-level file/directory in your repo gets an individual symlink into the right core location (`modules/<Name>/`, `plugins/`, or `admin/themes/<Name>/`), skipping a configurable exclusion list (`.ddev`, `.cmsms`, `.git`, etc.). Per-entry linking — rather than symlinking the whole repo root in one shot — is what avoids a symlink cycle (the core lives inside `.cmsms/`, which lives inside the repo being linked).
+Your extension isn't copied into the core. Modules and themes-at-repo-root get an individual symlink per top-level file/directory into `modules/<Name>/` or `admin/themes/<Name>/`, skipping a configurable exclusion list (`.ddev`, `.cmsms`, `.git`, etc.) — per-entry linking, rather than symlinking the whole repo root in one shot, is what avoids a symlink cycle (the core lives inside `.cmsms/`, which lives inside the repo being linked). Plugins link only their `function.*.php`/`modifier.*.php` files into `plugins/`. A theme that lives in its own subdirectory is simpler: the whole subdirectory gets a single symlink into `admin/themes/<Name>/`, since it can't contain `.cmsms/` itself.
 
 The `.cmsms/` directory (downloaded core, installer scratch space, generated `config.php`) is disposable and gitignored automatically by the add-on's post-install hook, so it never pollutes your extension's repository.
 
@@ -94,7 +94,7 @@ The `.cmsms/` directory (downloaded core, installer scratch space, generated `co
 
 - **Installer download fails**: set `CMSMS_INSTALLER_URL` to a working direct `cmsms-X.Y.Z-install.zip` URL (mirror or local file) and re-run.
 - **Install partially completed / left in a bad state**: `ddev cmsms-install all` is safe to re-run — every stage (fetch, files, db, link) checks its own completion marker and skips work already done.
-- **Not sure what's installed or linked**: `ddev cmsms status` reports the core version, configured extension, symlink state, and DB registration in one shot.
+- **Not sure what's installed or linked**: `ddev cmsms status` reports the core version and configured extension in one shot; for module projects it also reports symlink state and DB registration.
 - **Need a database GUI**: this add-on depends on [`ddev/ddev-phpmyadmin`](https://github.com/ddev/ddev-phpmyadmin) — run `ddev phpmyadmin` to open it.
 
 ## Credits / License

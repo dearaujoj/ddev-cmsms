@@ -99,16 +99,21 @@ EOF
 }
 
 cmd_admin() {
-  echo "admin credentials: admin / admin"
+  local user pass
+  user=$(ddev exec 'printf "%s" "${CMSMS_ADMIN_USER:-admin}"' 2>/dev/null || echo admin)
+  pass=$(ddev exec 'printf "%s" "${CMSMS_ADMIN_PASSWORD:-admin}"' 2>/dev/null || echo admin)
+  echo "admin credentials: $user / $pass"
   ddev launch /admin
 }
 
 cmd_status() {
-  local core ext_type ext_name want_version link_ok mod_ok
+  local core ext_type ext_name want_version link_ok mod_ok admin_user admin_pass
   core=$(ddev mysql -N -e 'SELECT version FROM cms_version' 2>/dev/null || echo "not installed")
   ext_type=$(ddev exec 'printf "%s" "${CMSMS_EXT_TYPE:-}"' 2>/dev/null || true)
   ext_name=$(ddev exec 'printf "%s" "${CMSMS_EXT_NAME:-}"' 2>/dev/null || true)
   want_version=$(ddev exec 'printf "%s" "${CMSMS_VERSION:-}"' 2>/dev/null || true)
+  admin_user=$(ddev exec 'printf "%s" "${CMSMS_ADMIN_USER:-admin}"' 2>/dev/null || echo admin)
+  admin_pass=$(ddev exec 'printf "%s" "${CMSMS_ADMIN_PASSWORD:-admin}"' 2>/dev/null || echo admin)
   echo "CMSMS core:      $core (configured: ${want_version:-default})"
   echo "Extension:       ${ext_type:-unset} / ${ext_name:-unset}"
   if [ -n "$ext_name" ] && [ "$ext_type" = "module" ]; then
@@ -126,7 +131,7 @@ cmd_status() {
     echo "Module link:     $link_ok"
     echo "Module in DB:    $mod_ok"
   fi
-  echo "URLs:            $(ddev describe -j 2>/dev/null | jq -r '.raw.primary_url // empty') (admin: /admin, admin/admin)"
+  echo "URLs:            $(ddev describe -j 2>/dev/null | jq -r '.raw.primary_url // empty') (admin: /admin, $admin_user/$admin_pass)"
 }
 
 cmd_reinstall() {
