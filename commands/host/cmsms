@@ -108,7 +108,7 @@ cmd_admin() {
 
 cmd_status() {
   local core ext_type ext_name want_version link_ok mod_ok admin_user admin_pass
-  core=$(ddev mysql -N -e 'SELECT version FROM cms_version' 2>/dev/null || echo "not installed")
+  core=$(ddev exec 'f=/var/www/html/.cmsms/public/lib/version.php; v=$(php -r "include \"$f\"; echo \$CMS_VERSION ?? \"\";" 2>/dev/null); if [ -n "$v" ]; then echo "$v"; else mysql -h db -u db -pdb db -N -e "SELECT version FROM cms_version" 2>/dev/null || echo "not installed"; fi' 2>/dev/null || echo "not installed")
   ext_type=$(ddev exec 'printf "%s" "${CMSMS_EXT_TYPE:-}"' 2>/dev/null || true)
   ext_name=$(ddev exec 'printf "%s" "${CMSMS_EXT_NAME:-}"' 2>/dev/null || true)
   want_version=$(ddev exec 'printf "%s" "${CMSMS_VERSION:-}"' 2>/dev/null || true)

@@ -154,9 +154,26 @@ stage_link() {
   log "link: done"
 }
 
+core_version() {
+  local f="$DOCROOT/lib/version.php" v=""
+  if [ -f "$f" ]; then
+    v=$(php -r 'include "'"$f"'"; echo $CMS_VERSION ?? "";' 2>/dev/null || true)
+  fi
+  if [ -n "$v" ]; then
+    echo "$v"
+  else
+    mysql -h db -u db -pdb db -N -e 'SELECT version FROM cms_version' 2>/dev/null || echo "unknown"
+  fi
+}
+
 stage_all() {
   if is_installed; then
-    log "already installed (CMSMS $(mysql -h db -u db -pdb db -N -e 'SELECT version FROM cms_version' 2>/dev/null)) — nothing to do"
+    if [ -n "${CMSMS_EXT_TYPE:-}" ]; then
+      log "already installed (CMSMS $(core_version)) — refreshing links"
+      stage_link
+      return 0
+    fi
+    log "already installed (CMSMS $(core_version)) — nothing to do"
     return 0
   fi
   if [ -z "${CMSMS_EXT_TYPE:-}" ]; then
@@ -167,7 +184,7 @@ stage_all() {
   stage_files
   stage_db
   stage_link
-  log "install complete: ${DDEV_PRIMARY_URL:-site} (admin/admin at ${DDEV_PRIMARY_URL:-}/admin)"
+  log "install complete: ${DDEV_PRIMARY_URL:-site} (${CMSMS_ADMIN_USER:-admin}/${CMSMS_ADMIN_PASSWORD:-admin} at ${DDEV_PRIMARY_URL:-}/admin, CMSMS $(core_version))"
 }
 
 case "${1:-all}" in

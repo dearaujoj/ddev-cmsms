@@ -66,4 +66,4 @@ json=$(printf '%s' "$entries" | jq -R -s '
   | from_entries
 ')
 
-jq -n --arg d "$latest" --argjson vs "$json" '{default: $d, versions: $vs}'
+jq -n --arg d "$latest" --argjson vs "$json" '{_comment: "#ddev-generated", default: $d, versions: $vs}'

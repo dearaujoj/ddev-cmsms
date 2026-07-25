@@ -50,10 +50,11 @@ try {
         }
         echo "[register] module $name installed\n";
     } elseif ($type === 'theme') {
-        $uid = (int)$db->GetOne('SELECT user_id FROM ' . CMS_DB_PREFIX . "users WHERE username = 'admin'");
-        if ($uid < 1) { fwrite(STDERR, "[register] admin user not found\n"); exit(1); }
+        $adminUser = getenv('CMSMS_ADMIN_USER') ?: 'admin';
+        $uid = (int)$db->GetOne('SELECT user_id FROM ' . CMS_DB_PREFIX . 'users WHERE username = ?', [$adminUser]);
+        if ($uid < 1) { fwrite(STDERR, "[register] admin user '$adminUser' not found\n"); exit(1); }
         cms_userprefs::set_for_user($uid, 'admintheme', $name);
-        echo "[register] admin theme set to $name for user admin\n";
+        echo "[register] admin theme set to $name for user $adminUser\n";
     } else {
         fwrite(STDERR, "[register] unknown type '$type'\n");
         exit(2);

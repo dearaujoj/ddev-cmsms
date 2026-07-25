@@ -18,6 +18,9 @@ post_install_actions:
         printf "%s\n" "$entry" >> ../.gitignore
       fi
     done
+  - |
+    #ddev-description:Create the CMSMS download cache dir (bind-mount source)
+    mkdir -p cmsms/cache
 
 removal_actions:
   - |
