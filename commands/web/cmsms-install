@@ -84,7 +84,16 @@ EOF
   fi
   mkdir -p "$DOCROOT/tmp/cache" "$DOCROOT/tmp/templates_c" "$DOCROOT/uploads"
 }
-stage_db()    { die "db: TODO (Task 5)"; }
+stage_db() {
+  [ -f "$DOCROOT/lib/include.php" ] || stage_files
+  if is_installed; then
+    log "db: already installed"
+    return 0
+  fi
+  log "db: running headless installer"
+  php "$PAYLOAD_DIR/install.php" "$DOCROOT" "$INSTALLER_DIR/app" "${DDEV_SITENAME:-CMSMS Dev Site}" \
+    || die "database install failed — fix the error above and re-run 'ddev exec cmsms-install db' (safe to re-run)"
+}
 stage_link()  { die "link: TODO (Task 6)"; }
 
 stage_all() {

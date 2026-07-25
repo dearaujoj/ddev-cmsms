@@ -58,3 +58,17 @@ setup() {
   run ddev exec php -l /var/www/html/.cmsms/public/config.php
   assert_success
 }
+
+@test "db stage installs schema, admin user, and serves the frontend" {
+  cd ${TESTDIR}
+  run ddev cmsms-install db
+  assert_success
+  run bash -c "ddev mysql -N -e 'SELECT version FROM cms_version'"
+  assert_success
+  run bash -c "ddev mysql -N -e \"SELECT COUNT(*) FROM cms_users WHERE username='admin'\""
+  assert_output "1"
+  run bash -c "curl -sfL -o /dev/null -w '%{http_code}' https://${PROJNAME}.ddev.site/"
+  assert_output "200"
+  run bash -c "curl -sfL https://${PROJNAME}.ddev.site/admin/login.php"
+  assert_success
+}
