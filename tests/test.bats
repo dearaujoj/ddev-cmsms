@@ -44,3 +44,15 @@ setup() {
   run ddev exec test -s /mnt/ddev_config/cmsms/cache/cmsms-2.2.22/installer.php
   assert_success
 }
+
+@test "files stage extracts the core and writes config.php" {
+  cd ${TESTDIR}
+  run ddev cmsms-install files
+  assert_success
+  run ddev exec test -f /var/www/html/.cmsms/public/lib/include.php
+  assert_success
+  run ddev exec test -f /var/www/html/.cmsms/installer/app/install/schema.php
+  assert_success
+  run ddev exec php -l /var/www/html/.cmsms/public/config.php
+  assert_success
+}

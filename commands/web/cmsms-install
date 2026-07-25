@@ -55,7 +55,31 @@ stage_fetch() {
   log "fetch: cached at $VCACHE/installer.php"
 }
 
-stage_files() { die "files: TODO (Task 4)"; }
+stage_files() {
+  [ -s "$VCACHE/installer.php" ] || stage_fetch
+  if [ -f "$DOCROOT/lib/include.php" ] && [ -f "$INSTALLER_DIR/app/install/schema.php" ]; then
+    log "files: core already extracted"
+  else
+    rm -rf "$INSTALLER_DIR"
+    php "$PAYLOAD_DIR/extract.php" "$VCACHE/installer.php" "$INSTALLER_DIR" "$DOCROOT" \
+      || die "extraction failed"
+  fi
+  if [ ! -f "$DOCROOT/config.php" ]; then
+    log "files: writing config.php"
+    cat > "$DOCROOT/config.php" <<EOF
+<?php
+# ddev-cmsms generated configuration
+\$config['dbms'] = 'mysqli';
+\$config['db_hostname'] = 'db';
+\$config['db_username'] = 'db';
+\$config['db_password'] = 'db';
+\$config['db_name'] = 'db';
+\$config['db_prefix'] = 'cms_';
+\$config['timezone'] = '${TZ:-UTC}';
+EOF
+  fi
+  mkdir -p "$DOCROOT/tmp/cache" "$DOCROOT/tmp/templates_c" "$DOCROOT/uploads"
+}
 stage_db()    { die "db: TODO (Task 5)"; }
 stage_link()  { die "link: TODO (Task 6)"; }
 
