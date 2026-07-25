@@ -129,8 +129,39 @@ cmd_status() {
   echo "URLs:            $(ddev describe -j 2>/dev/null | jq -r '.raw.primary_url // empty') (admin: /admin, admin/admin)"
 }
 
-cmd_reinstall() { echo "reinstall: implemented in a later task"; exit 1; }
-cmd_package()   { echo "package: implemented in a later task"; exit 1; }
+cmd_reinstall() {
+  local yes=0
+  case "${1:-}" in --yes|-y) yes=1 ;; esac   # (an `[ ] || [ ] && x` chain would trip set -e)
+  if [ "$yes" != 1 ]; then
+    read -r -p "This DROPS the database and deletes .cmsms/ core files. Continue? [y/N] " ans
+    case "$ans" in y|Y|yes) ;; *) echo "aborted"; exit 1 ;; esac
+  fi
+  echo "dropping database..."
+  ddev mysql -uroot -proot -e "DROP DATABASE IF EXISTS db; CREATE DATABASE db;"
+  echo "removing core files (keeping download cache)..."
+  # config.cmsms.yaml declares upload_dirs: [uploads], so
+  # .cmsms/public/uploads is bind-mounted directly (bypassing mutagen) rather
+  # than living inside the synced project volume. `rm -rf .cmsms/public`
+  # would recurse into that mount and then fail to rmdir the mountpoint
+  # itself ("device or resource busy"). Empty it in place instead of
+  # removing it, and leave public/ standing so extract.php's PharData
+  # overwrite-extract has an existing tree to write back into.
+  ddev exec '
+    rm -rf /var/www/html/.cmsms/installer
+    find /var/www/html/.cmsms/public -mindepth 1 -maxdepth 1 -not -name uploads -exec rm -rf {} +
+    find /var/www/html/.cmsms/public/uploads -mindepth 1 -exec rm -rf {} +
+  '
+  echo "reinstalling..."
+  ddev cmsms-install all
+}
+
+cmd_package() {
+  local ext_type ext_name
+  ext_type=$(ddev exec 'printf "%s" "${CMSMS_EXT_TYPE:-}"')
+  ext_name=$(ddev exec 'printf "%s" "${CMSMS_EXT_NAME:-}"')
+  [ "$ext_type" = "module" ] || { echo "package only works for module projects (this is: ${ext_type:-unset})" >&2; exit 2; }
+  ddev exec php /mnt/ddev_config/cmsms/package.php /var/www/html/.cmsms/public "$ext_name" /var/www/html/dist
+}
 
 case "${1:-}" in
   setup)     shift; cmd_setup "$@" ;;

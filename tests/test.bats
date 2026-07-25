@@ -106,3 +106,22 @@ setup() {
   assert_output --partial "SkeletonTest"
   assert_output --partial "installed"
 }
+
+@test "package builds a valid module XML into dist/" {
+  cd ${TESTDIR}
+  run ddev cmsms package
+  assert_success
+  assert_file_exists dist/SkeletonTest-1.0.0.xml
+  run ddev exec php -r 'exit(simplexml_load_file("/var/www/html/dist/SkeletonTest-1.0.0.xml") === false ? 1 : 0);'
+  assert_success
+}
+
+@test "reinstall wipes and reinstalls to a working site" {
+  cd ${TESTDIR}
+  run ddev cmsms reinstall --yes
+  assert_success
+  run bash -c "curl -sfL -o /dev/null -w '%{http_code}' https://${PROJNAME}.ddev.site/"
+  assert_output "200"
+  run bash -c "ddev mysql -N -e \"SELECT COUNT(*) FROM cms_modules WHERE module_name='SkeletonTest'\""
+  assert_output "1"
+}
