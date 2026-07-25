@@ -87,3 +87,22 @@ setup() {
   run bash -c "curl -sfL -o /dev/null -w '%{http_code}' https://${PROJNAME}.ddev.site/"
   assert_output "200"
 }
+
+@test "non-interactive setup writes the project config" {
+  cd ${TESTDIR}
+  run ddev cmsms setup --type module --name SkeletonTest --version 2.2.22 --yes
+  assert_success
+  assert_file_exists .ddev/config.cmsms-project.yaml
+  run grep -q "CMSMS_EXT_NAME=SkeletonTest" .ddev/config.cmsms-project.yaml
+  assert_success
+}
+
+@test "status reports core version and extension state" {
+  cd ${TESTDIR}
+  ddev restart -y >/dev/null   # pick up the new env vars
+  run ddev cmsms status
+  assert_success
+  assert_output --partial "2.2.22"
+  assert_output --partial "SkeletonTest"
+  assert_output --partial "installed"
+}
