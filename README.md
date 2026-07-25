@@ -1,6 +1,6 @@
 # ddev-cmsms
 
-[![tests](https://github.com/<owner>/ddev-cmsms/actions/workflows/tests.yml/badge.svg)](https://github.com/<owner>/ddev-cmsms/actions/workflows/tests.yml)
+[![tests](https://github.com/dearaujoj/ddev-cmsms/actions/workflows/tests.yml/badge.svg)](https://github.com/dearaujoj/ddev-cmsms/actions/workflows/tests.yml)
 [![project](https://img.shields.io/badge/DDEV-Add--on-blue)](https://ddev.com)
 
 A [DDEV](https://ddev.com) add-on that turns a CMS Made Simple extension repository (module, plugin, or theme) into a full, disposable CMSMS dev site. It downloads the official CMSMS installer, drives it headlessly (no browser wizard), symlinks your extension into a running core, and installs it — all from `ddev start`. The core lives in a gitignored `.cmsms/` directory next to your extension source, so the repo you're developing stays clean.
@@ -11,7 +11,7 @@ A [DDEV](https://ddev.com) add-on that turns a CMS Made Simple extension reposit
 cd my-module/
 mkdir -p .cmsms/public
 ddev config --project-type=php --docroot=.cmsms/public
-ddev add-on get <owner>/ddev-cmsms
+ddev add-on get dearaujoj/ddev-cmsms
 ddev cmsms setup
 ddev start
 ddev launch        # frontend; `ddev cmsms admin` opens /admin (admin/admin)
