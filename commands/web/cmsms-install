@@ -170,7 +170,11 @@ stage_all() {
   if is_installed; then
     if [ -n "${CMSMS_EXT_TYPE:-}" ]; then
       log "already installed (CMSMS $(core_version)) — refreshing links"
-      stage_link
+      # Contained in a subshell: stage_link's die() calls `exit`, which would
+      # otherwise take down this whole script (and the ddev-start post-hook
+      # with it). A link-refresh failure on an already-installed site is not
+      # fatal — warn and move on so `ddev start` stays safe.
+      ( stage_link ) || log "warning: link refresh failed (see above) — fix and re-run 'ddev cmsms-install link'"
       return 0
     fi
     log "already installed (CMSMS $(core_version)) — nothing to do"
