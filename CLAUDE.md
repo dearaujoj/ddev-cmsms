@@ -2,7 +2,7 @@
 
 DDEV add-on that turns a CMS Made Simple (CMSMS 2.2.x) module/plugin/admin-theme repo into a fully installed, disposable dev site. Installed into a project with `ddev add-on get dearaujoj/ddev-cmsms`; the CMSMS core lives in the project's gitignored `.cmsms/public/` (docroot), the extension is symlinked in and registered.
 
-Design spec and implementation plan live in `docs/superpowers/` — read them before structural changes.
+Design spec and implementation plan live in `docs/superpowers/` (local-only, gitignored) — read them before structural changes.
 
 ## Commands
 
