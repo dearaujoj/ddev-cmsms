@@ -1,1 +1,9 @@
 tests/tmp/
+
+# OS / IDE / local tooling — never ship in the add-on
+.DS_Store
+.idea/
+.vscode/
+.claude/
+.superpowers/
+.ddev/
