@@ -57,7 +57,8 @@ stage_fetch() {
 
 stage_files() {
   [ -s "$VCACHE/installer.php" ] || stage_fetch
-  if [ -f "$DOCROOT/lib/include.php" ] && [ -f "$INSTALLER_DIR/app/install/schema.php" ]; then
+  local marker="$INSTALLER_DIR/.extract-complete"
+  if [ -f "$marker" ]; then
     log "files: core already extracted"
   else
     rm -rf "$INSTALLER_DIR"
@@ -66,7 +67,9 @@ stage_files() {
   fi
   if [ ! -f "$DOCROOT/config.php" ]; then
     log "files: writing config.php"
-    cat > "$DOCROOT/config.php" <<EOF
+    local tmp
+    tmp=$(mktemp "$DOCROOT/config.php.XXXXXX")
+    cat > "$tmp" <<EOF
 <?php
 # ddev-cmsms generated configuration
 \$config['dbms'] = 'mysqli';
@@ -77,6 +80,7 @@ stage_files() {
 \$config['db_prefix'] = 'cms_';
 \$config['timezone'] = '${TZ:-UTC}';
 EOF
+    mv "$tmp" "$DOCROOT/config.php"
   fi
   mkdir -p "$DOCROOT/tmp/cache" "$DOCROOT/tmp/templates_c" "$DOCROOT/uploads"
 }

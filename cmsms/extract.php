@@ -1,4 +1,5 @@
 <?php
+#ddev-generated
 // Usage: php extract.php <installer.php> <installer_dir> <docroot>
 // Extracts the self-extracting CMSMS installer phar, then unpacks the
 // core-files tarball (data/data.tar.gz) into the docroot.
@@ -25,4 +26,9 @@ echo "[extract] unpacking core files into $docroot\n";
 @mkdir($docroot, 0777, true);
 $data = new PharData($tarball);
 $data->extractTo($docroot, null, true);
+
+// Only mark extraction complete once both the installer app and the core
+// files have been fully unpacked, so a mid-extraction failure (process
+// killed, disk full, etc.) never leaves a stale marker behind.
+touch("$installerDir/.extract-complete");
 echo "[extract] done\n";

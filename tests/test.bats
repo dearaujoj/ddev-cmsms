@@ -53,6 +53,8 @@ setup() {
   assert_success
   run ddev exec test -f /var/www/html/.cmsms/installer/app/install/schema.php
   assert_success
+  run ddev exec test -f /var/www/html/.cmsms/installer/.extract-complete
+  assert_success
   run ddev exec php -l /var/www/html/.cmsms/public/config.php
   assert_success
 }
