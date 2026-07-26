@@ -306,7 +306,13 @@ cmd_load() {
     case "$arg" in
       --use) use=1 ;;
       -*) echo "unknown option $arg" >&2; exit 2 ;;
-      *) zip=$arg ;;
+      *)
+        if [ -n "$zip" ]; then
+          echo "unexpected extra argument '$arg' (already got zip path '$zip')" >&2
+          exit 2
+        fi
+        zip=$arg
+        ;;
     esac
   done
   [ -n "$zip" ] || { echo "usage: ddev cmsms load <installer.zip> [--use]" >&2; exit 2; }
@@ -348,8 +354,16 @@ cmd_load() {
       echo "--use needs an existing $PROJECT_CONFIG — run 'ddev cmsms setup' first" >&2
       exit 2
     fi
-    # sed -i needs a suffix arg on macOS/BSD
-    sed -i.bak "s/^  - CMSMS_VERSION=.*/  - CMSMS_VERSION=$version/" "$PROJECT_CONFIG" && rm -f "$PROJECT_CONFIG.bak"
+    # sed -i needs a suffix arg on macOS/BSD. Checked explicitly (not `&&` in
+    # a chain) because under `set -e` only the last command of an `&&` list
+    # aborts the function — a failed sed followed by `&& rm -f ...bak` would
+    # fall through to the success message below, a silent false success.
+    if ! sed -i.bak "s/^  - CMSMS_VERSION=.*/  - CMSMS_VERSION=$version/" "$PROJECT_CONFIG"; then
+      rm -f "$PROJECT_CONFIG.bak"
+      echo "could not update $PROJECT_CONFIG — check permissions" >&2
+      exit 2
+    fi
+    rm -f "$PROJECT_CONFIG.bak"
     echo "set CMSMS_VERSION=$version in $PROJECT_CONFIG — run 'ddev restart', then 'ddev cmsms reinstall' to switch cores"
   else
     echo "use it with: ddev cmsms setup --version $version   (or re-run load with --use)"
