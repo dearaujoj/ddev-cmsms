@@ -24,7 +24,7 @@ Admin credentials default to `admin` / `admin`. Override them with the `CMSMS_AD
 No code yet? The same flow works — `ddev cmsms setup` notices the empty repo
 and generates a starter for you (or run `ddev cmsms scaffold` explicitly):
 
-    mkdir MyModule && cd MyModule
+    mkdir my-module && cd my-module
     mkdir -p .cmsms/public
     ddev config --project-type=php --docroot=.cmsms/public
     ddev add-on get dearaujoj/ddev-cmsms
