@@ -51,6 +51,27 @@ setup() {
   assert_success
 }
 
+@test "fetch uses a loaded local zip and bypasses versions.json" {
+  cd ${TESTDIR}
+  # build a synthetic cmsms-9.9.9 zip from the real cached installer payload
+  ddev exec "cd /tmp && cp /mnt/ddev_config/cmsms/cache/cmsms-${CMSMS_TEST_VERSION}/installer.php cmsms-9.9.9-install.php && zip -q local999.zip cmsms-9.9.9-install.php"
+  ddev exec cp /tmp/local999.zip /var/www/html/local999.zip
+  run ddev cmsms load local999.zip
+  assert_success
+  assert_file_exists .ddev/cmsms/cache/cmsms-9.9.9-install.zip
+  # 9.9.9 is NOT in versions.json — fetch must succeed via the drop-in
+  run ddev exec "CMSMS_VERSION=9.9.9 bash /mnt/ddev_config/commands/web/cmsms-install fetch"
+  assert_success
+  assert_output --partial "using local installer zip"
+  run ddev exec test -s /mnt/ddev_config/cmsms/cache/cmsms-9.9.9/installer.php
+  assert_success
+  # the drop-in itself must survive
+  assert_file_exists .ddev/cmsms/cache/cmsms-9.9.9-install.zip
+  # cleanup: drop-in, expanded cache dir, scratch files
+  rm -f ${TESTDIR}/local999.zip ${TESTDIR}/.ddev/cmsms/cache/cmsms-9.9.9-install.zip
+  ddev exec "rm -rf /mnt/ddev_config/cmsms/cache/cmsms-9.9.9 /tmp/local999.zip /tmp/cmsms-9.9.9-install.php"
+}
+
 @test "files stage extracts the core and writes config.php" {
   cd ${TESTDIR}
   run ddev cmsms-install files

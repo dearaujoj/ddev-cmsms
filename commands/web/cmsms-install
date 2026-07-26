@@ -38,20 +38,29 @@ stage_fetch() {
     log "fetch: installer for $CMSMS_VERSION already cached"
     return 0
   fi
-  local url zip
-  url=$(resolve_url)
+  local zip phar
+  local dropin=$CACHE_DIR/cmsms-$CMSMS_VERSION-install.zip
   mkdir -p "$VCACHE"
-  zip=$VCACHE/install.zip
-  log "fetch: downloading $url"
-  curl -fSL -o "$zip" "$url" \
-    || die "download failed from $url — set CMSMS_INSTALLER_URL to a working mirror or local file"
-  log "fetch: unpacking installer"
-  unzip -oq "$zip" -d "$VCACHE"
-  local phar
+  if [ -s "$dropin" ]; then
+    # placed by 'ddev cmsms load' (or by hand) — takes precedence over any
+    # download, and versions.json is never consulted. Never delete it.
+    log "fetch: using local installer zip $dropin"
+    unzip -oq "$dropin" -d "$VCACHE" || die "could not unzip $dropin — re-run 'ddev cmsms load' with a valid installer zip"
+    zip=$dropin
+  else
+    local url
+    url=$(resolve_url)
+    zip=$VCACHE/install.zip
+    log "fetch: downloading $url"
+    curl -fSL -o "$zip" "$url" \
+      || die "download failed from $url — set CMSMS_INSTALLER_URL to a working mirror or load a local zip with 'ddev cmsms load'"
+    log "fetch: unpacking installer"
+    unzip -oq "$zip" -d "$VCACHE"
+  fi
   phar=$(ls "$VCACHE"/cmsms-*-install.php 2>/dev/null | head -1)
   [ -n "$phar" ] || die "no cmsms-*-install.php found inside $zip"
   mv "$phar" "$VCACHE/installer.php"
-  rm -f "$zip"
+  [ "$zip" = "$VCACHE/install.zip" ] && rm -f "$zip"
   log "fetch: cached at $VCACHE/installer.php"
 }
 
