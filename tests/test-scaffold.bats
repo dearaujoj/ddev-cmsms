@@ -71,3 +71,19 @@ setup() {
   assert_failure
   assert_output --partial "refusing to overwrite"
 }
+
+@test "setup --yes on an empty repo auto-scaffolds the module" {
+  export SETUPDIR=~/tmp/test-ddev-cmsms-scaffold-setup
+  ddev delete -Oy test-ddev-cmsms-scaffold-setup >/dev/null 2>&1 || true
+  rm -rf ${SETUPDIR} && mkdir -p ${SETUPDIR}
+  cd ${SETUPDIR}
+  mkdir -p .cmsms/public
+  ddev config --project-name=test-ddev-cmsms-scaffold-setup --project-type=php --docroot=.cmsms/public
+  ddev add-on get ${DIR}
+  run ddev cmsms setup --type module --name Fresh --yes
+  assert_success
+  assert_file_exists Fresh.module.php
+  assert_file_exists .ddev/config.cmsms-project.yaml
+  ddev delete -Oy test-ddev-cmsms-scaffold-setup >/dev/null 2>&1 || true
+  rm -rf ${SETUPDIR}
+}
