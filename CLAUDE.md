@@ -33,6 +33,7 @@ Tests use a shared long-lived project at `~/tmp/test-ddev-cmsms`; the first test
 - CMSMS bootstrap quirks (2.2.22): `require_once lib/smarty/Smarty.class.php` after `include.php` (headless runs never trigger Smarty's autoloader), and `unset($GLOBALS['CMS_INSTALL_PAGE'])` before `ModuleOperations` calls (else fresh non-system modules are discarded on load).
 - Host bash is macOS 3.2 — no bash-4 constructs in `commands/host/cmsms`.
 - Don't pin `php_version` in `config.cmsms.yaml`: config.*.yaml merges after config.yaml and would silently override `ddev config --php-version`.
+- Skeleton templates in `cmsms/skeletons/` carry a `#ddev-generated` comment line (so add-on upgrades refresh them); `scaffold_from_skeleton` strips those lines when generating user files — generated user code must never carry the marker.
 
 ## Conventions
 

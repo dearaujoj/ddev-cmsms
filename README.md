@@ -19,11 +19,24 @@ ddev launch        # frontend; `ddev cmsms admin` opens /admin (admin/admin)
 
 Admin credentials default to `admin` / `admin`. Override them with the `CMSMS_ADMIN_USER` / `CMSMS_ADMIN_PASSWORD` environment variables before the first install (see [Configuration](#configuration)).
 
+### Starting from an empty directory
+
+No code yet? The same flow works — `ddev cmsms setup` notices the empty repo
+and generates a starter for you (or run `ddev cmsms scaffold` explicitly):
+
+    mkdir MyModule && cd MyModule
+    mkdir -p .cmsms/public
+    ddev config --project-type=php --docroot=.cmsms/public
+    ddev add-on get dearaujoj/ddev-cmsms
+    ddev cmsms setup --type module --name MyModule --yes   # scaffolds MyModule.module.php & co.
+    ddev start                                             # installs CMSMS with your new module live
+
 ## Commands
 
 | Command | Description |
 | --- | --- |
 | `ddev cmsms setup [--type module\|plugin\|theme] [--name NAME] [--version X.Y.Z] [--yes\|-y]` | Detects (or accepts) the extension type/name and CMSMS version, validates them, and writes `.ddev/config.cmsms-project.yaml`. Without `--yes`, prompts interactively for anything not passed as a flag, offering the auto-detected value as the default. `--yes`/`-y` runs fully non-interactively, falling back to auto-detected values for anything not passed. |
+| `ddev cmsms scaffold [--type T --name N] [--yes\|-y]` | Generates a working starter: module (module class + default/admin actions + template + lang), plugin (`function.<name>.php`), or admin theme (a renamed copy of the core's OneEleven — requires an installed site). Refuses to overwrite existing files. `setup` offers this automatically when the repo is empty. |
 | `ddev cmsms admin` | Prints the actual admin credentials (`admin`/`admin` unless overridden, read from the running container) and opens `/admin` in your browser. |
 | `ddev cmsms status` | Reports the installed CMSMS core version vs. the configured one and the extension type/name; for module projects, also reports whether it's symlinked and registered in the database. |
 | `ddev cmsms reinstall [--yes]` | Drops the database and clears the core/installer files (keeping the download cache and `uploads/`), then re-runs the full install. Prompts for confirmation unless `--yes`/`-y` is passed — this is destructive. |
