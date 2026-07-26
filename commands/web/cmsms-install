@@ -187,7 +187,12 @@ stage_all() {
   stage_fetch
   stage_files
   stage_db
-  stage_link
+  # Contained in a subshell for the same reason as the refresh path above.
+  # A link failure after a successful install must not fail the post-start
+  # hook: for THEME projects it is the EXPECTED state on the first start —
+  # the starter theme can only be scaffolded from the freshly installed core
+  # (it copies OneEleven), so the theme files cannot exist yet.
+  ( stage_link ) || log "warning: extension not linked (see above) — for a new theme run 'ddev cmsms scaffold', then 'ddev cmsms-install link'"
   log "install complete: ${DDEV_PRIMARY_URL:-site} (${CMSMS_ADMIN_USER:-admin}/${CMSMS_ADMIN_PASSWORD:-admin} at ${DDEV_PRIMARY_URL:-}/admin, CMSMS $(core_version))"
 }
 
