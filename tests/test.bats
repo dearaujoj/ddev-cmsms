@@ -141,5 +141,9 @@ setup() {
   assert_success
   run grep -rq "OneEleven" FreshTheme/FreshThemeTheme.php
   assert_failure
+  # the sed rewrite is the step that could break syntax — lint the renamed
+  # file inside the container (host php isn't guaranteed to exist)
+  run ddev exec php -l /var/www/html/FreshTheme/FreshThemeTheme.php
+  assert_success
   rm -rf ${TESTDIR}/FreshTheme   # keep the shared module project clean
 }

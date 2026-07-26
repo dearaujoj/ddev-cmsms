@@ -40,6 +40,7 @@ default_version() {
 # otherwise silently clobber the first one's non-name-bearing files.
 scaffold_from_skeleton() {
   local src=$1 dest=$2 name=$3 lname rel out
+  [ -d "$src" ] || { echo "skeleton dir $src missing — re-run 'ddev add-on get'" >&2; exit 2; }
   lname=$(echo "$name" | tr '[:upper:]' '[:lower:]')
 
   local rels=() outs=() existing=()
@@ -203,12 +204,17 @@ cmd_setup() {
       # doesn't exist before the first 'ddev start'
       echo "note: no ${name}Theme.php yet — after 'ddev start', run 'ddev cmsms scaffold' to copy a starter theme" >&2
     elif [ "$yes" = 1 ]; then
-      cmd_scaffold --type "$type" --name "$name" --yes
+      # Contained in a subshell: cmd_scaffold's exit-2 refusals (e.g. an
+      # existing target file) would otherwise abort cmd_setup before
+      # $PROJECT_CONFIG is written. A scaffold refusal here is not fatal —
+      # warn and let setup finish (mirrors stage_all's `( stage_link ) ||`
+      # idiom in commands/web/cmsms-install).
+      ( cmd_scaffold --type "$type" --name "$name" --yes ) || echo "warning: scaffold failed (see above) — continuing setup" >&2
     else
-      read -r -p "No $type files found — create a starter $type named $name? [Y/n] " ans
+      read -r -p "No $type files found — create a starter $type named $name? [Y/n] " ans || ans=""
       case "$ans" in
         n|N|no) echo "warning: no $type files for '$name' found (yet?)" >&2 ;;
-        *) cmd_scaffold --type "$type" --name "$name" --yes ;;
+        *) ( cmd_scaffold --type "$type" --name "$name" --yes ) || echo "warning: scaffold failed (see above) — continuing setup" >&2 ;;
       esac
     fi
   fi
