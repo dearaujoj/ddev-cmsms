@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #ddev-generated
 ## Description: CMSMS dev helpers (setup, admin, reinstall, package, status)
-## Usage: cmsms [setup|admin|reinstall|package|status]
+## Usage: cmsms [setup|scaffold|admin|reinstall|package|status]
 ## Example: ddev cmsms setup
 set -eu -o pipefail
 
@@ -25,6 +25,77 @@ detect_name() {
 
 default_version() {
   jq -r '.default' .ddev/cmsms/versions.json 2>/dev/null || echo 2.2.22
+}
+
+# Copy a skeleton dir to dest, substituting __NAME__/__name__ in paths and
+# contents, and stripping every line that contains the #ddev-generated marker
+# (templates carry it so add-on upgrades refresh them; generated user code
+# must ship clean).
+scaffold_from_skeleton() {
+  local src=$1 dest=$2 name=$3 lname rel out
+  lname=$(echo "$name" | tr '[:upper:]' '[:lower:]')
+  ( cd "$src" && find . -type f ) | while IFS= read -r rel; do
+    rel=${rel#./}
+    out=$dest/$(echo "$rel" | sed -e "s/__NAME__/$name/g" -e "s/__name__/$lname/g")
+    mkdir -p "$(dirname "$out")"
+    sed -e "s/__NAME__/$name/g" -e "s/__name__/$lname/g" "$src/$rel" | grep -v '#ddev-generated' > "$out"
+  done
+}
+
+cmd_scaffold() {
+  local type="" name="" yes=0
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --type)
+        case "${2:-}" in ''|--*) echo "missing value for --type" >&2; exit 2 ;; esac
+        type=$2; shift 2 ;;
+      --name)
+        case "${2:-}" in ''|--*) echo "missing value for --name" >&2; exit 2 ;; esac
+        name=$2; shift 2 ;;
+      --yes|-y) yes=1; shift ;;
+      *) echo "unknown option $1" >&2; exit 2 ;;
+    esac
+  done
+
+  local dtype dname
+  dtype=$(detect_type); dname=$(detect_name "$dtype" || true)
+  if [ "$yes" != 1 ]; then
+    if [ -z "$type" ]; then
+      read -r -p "Extension type to scaffold [module/plugin/theme] (default: $dtype): " t_in
+      type=${t_in:-$dtype}
+    fi
+    if [ -z "$name" ]; then
+      read -r -p "Name for the new $type: " n_in
+      name=${n_in:-$dname}
+    fi
+  else
+    type=${type:-$dtype}; name=${name:-$dname}
+  fi
+
+  case "$type" in module|plugin|theme) ;; *) echo "invalid type '$type'" >&2; exit 2 ;; esac
+  [ -n "$name" ] || { echo "scaffold needs a name — pass --name" >&2; exit 2; }
+  if ! [[ "$name" =~ ^[A-Za-z0-9_]+$ ]]; then
+    echo "invalid name '$name': must match ^[A-Za-z0-9_]+\$" >&2
+    exit 2
+  fi
+  local lname
+  lname=$(echo "$name" | tr '[:upper:]' '[:lower:]')
+
+  case "$type" in
+    module)
+      [ -e "./$name.module.php" ] && { echo "./$name.module.php already exists — refusing to overwrite" >&2; exit 2; }
+      scaffold_from_skeleton .ddev/cmsms/skeletons/module . "$name"
+      echo "scaffolded module $name — edit $name.module.php, then 'ddev start' to install it"
+      ;;
+    plugin)
+      [ -e "./function.$lname.php" ] && { echo "./function.$lname.php already exists — refusing to overwrite" >&2; exit 2; }
+      scaffold_from_skeleton .ddev/cmsms/skeletons/plugin . "$name"
+      echo "scaffolded plugin function.$lname.php — 'ddev start' links it into the site"
+      ;;
+    theme)
+      echo "theme scaffolding not implemented yet" >&2; exit 2
+      ;;
+  esac
 }
 
 cmd_setup() {
@@ -170,9 +241,10 @@ cmd_package() {
 
 case "${1:-}" in
   setup)     shift; cmd_setup "$@" ;;
+  scaffold)  shift; cmd_scaffold "$@" ;;
   admin)     cmd_admin ;;
   status)    cmd_status ;;
   reinstall) shift || true; cmd_reinstall "$@" ;;
   package)   cmd_package ;;
-  *) echo "usage: ddev cmsms [setup|admin|reinstall|package|status]"; exit 2 ;;
+  *) echo "usage: ddev cmsms [setup|scaffold|admin|reinstall|package|status]"; exit 2 ;;
 esac
