@@ -5,6 +5,13 @@
 
 A [DDEV](https://ddev.com) add-on that turns a CMS Made Simple extension repository (module, plugin, or theme) into a full, disposable CMSMS dev site. It downloads the official CMSMS installer, drives it headlessly (no browser wizard), symlinks your extension into a running core, and installs it — all from `ddev start`. The core lives in a gitignored `.cmsms/` directory next to your extension source, so the repo you're developing stays clean.
 
+## Requirements
+
+- [DDEV](https://ddev.readthedocs.io/en/stable/) **v1.24.0 or newer** — new to DDEV? Follow the [installation guide](https://ddev.readthedocs.io/en/stable/users/install/ddev-installation/) first; it also installs everything below.
+- A Docker provider supported by DDEV ([Docker Desktop, OrbStack, Colima, …](https://ddev.readthedocs.io/en/stable/users/install/docker-installation/)).
+
+Everything else (PHP, MariaDB, the CMSMS core itself) runs inside DDEV's containers — nothing CMSMS-related is installed on your machine.
+
 ## Quickstart
 
 ```bash
