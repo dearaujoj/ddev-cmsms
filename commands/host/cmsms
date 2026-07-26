@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #ddev-generated
-## Description: CMSMS dev helpers (setup, admin, reinstall, package, status)
-## Usage: cmsms [setup|scaffold|admin|reinstall|package|status]
+## Description: CMSMS dev helpers (setup, load, admin, reinstall, package, status)
+## Usage: cmsms [setup|scaffold|load|admin|reinstall|package|status]
 ## Example: ddev cmsms setup
 set -eu -o pipefail
 
@@ -300,12 +300,69 @@ cmd_package() {
   ddev exec php /mnt/ddev_config/cmsms/package.php /var/www/html/.cmsms/public "$ext_name" /var/www/html/dist
 }
 
+cmd_load() {
+  local zip="" use=0 arg
+  for arg in "$@"; do
+    case "$arg" in
+      --use) use=1 ;;
+      -*) echo "unknown option $arg" >&2; exit 2 ;;
+      *) zip=$arg ;;
+    esac
+  done
+  [ -n "$zip" ] || { echo "usage: ddev cmsms load <installer.zip> [--use]" >&2; exit 2; }
+  [ -r "$zip" ] || { echo "installer zip not found (or unreadable): $zip" >&2; exit 2; }
+
+  # host-portability guard: unzip ships with macOS/most Linux/WSL2, but not
+  # every minimal environment (some git-bash installs)
+  command -v unzip >/dev/null 2>&1 \
+    || { echo "'unzip' is required by 'ddev cmsms load' — install it (e.g. apt/dnf install unzip) and retry" >&2; exit 2; }
+
+  local listing
+  listing=$(unzip -l "$zip" 2>/dev/null) \
+    || { echo "not a readable zip archive: $zip" >&2; exit 2; }
+
+  # The inner self-extracting phar is named cmsms-<version>-install.php by
+  # the CMSMS build itself — that name is the version truth, never the outer
+  # filename (users rename downloads).
+  local inner count version
+  inner=$(printf '%s\n' "$listing" | grep -oE '[^ /]*cmsms-[^ /]*-install\.php' | sort -u || true)
+  count=$(printf '%s' "$inner" | grep -c . || true)
+  if [ "$count" != 1 ]; then
+    echo "expected exactly one cmsms-<version>-install.php inside $zip (found: ${count:-0})" >&2
+    exit 2
+  fi
+  version=$(printf '%s' "$inner" | sed -E 's/^cmsms-(.+)-install\.php$/\1/')
+  if ! [[ "$version" =~ ^[0-9][0-9.]*([.-][A-Za-z0-9.]+)?$ ]]; then
+    echo "inner phar '$inner' has an unparseable version '$version'" >&2
+    exit 2
+  fi
+
+  local dest=.ddev/cmsms/cache/cmsms-$version-install.zip
+  mkdir -p .ddev/cmsms/cache
+  [ -e "$dest" ] && echo "note: replacing existing $dest"
+  cp "$zip" "$dest"
+  echo "loaded CMSMS $version into the cache ($dest)"
+
+  if [ "$use" = 1 ]; then
+    if [ ! -f "$PROJECT_CONFIG" ]; then
+      echo "--use needs an existing $PROJECT_CONFIG — run 'ddev cmsms setup' first" >&2
+      exit 2
+    fi
+    # sed -i needs a suffix arg on macOS/BSD
+    sed -i.bak "s/^  - CMSMS_VERSION=.*/  - CMSMS_VERSION=$version/" "$PROJECT_CONFIG" && rm -f "$PROJECT_CONFIG.bak"
+    echo "set CMSMS_VERSION=$version in $PROJECT_CONFIG — run 'ddev restart', then 'ddev cmsms reinstall' to switch cores"
+  else
+    echo "use it with: ddev cmsms setup --version $version   (or re-run load with --use)"
+  fi
+}
+
 case "${1:-}" in
   setup)     shift; cmd_setup "$@" ;;
   scaffold)  shift; cmd_scaffold "$@" ;;
+  load)      shift; cmd_load "$@" ;;
   admin)     cmd_admin ;;
   status)    cmd_status ;;
   reinstall) shift || true; cmd_reinstall "$@" ;;
   package)   cmd_package ;;
-  *) echo "usage: ddev cmsms [setup|scaffold|admin|reinstall|package|status]"; exit 2 ;;
+  *) echo "usage: ddev cmsms [setup|scaffold|load|admin|reinstall|package|status]"; exit 2 ;;
 esac
