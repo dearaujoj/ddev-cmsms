@@ -31,7 +31,7 @@ Tests use a shared long-lived project at `~/tmp/test-ddev-cmsms`; the first test
 - Every shipped file needs the literal `#ddev-generated` string (JSON: the `"_comment"` key) or `ddev add-on get` will never update it in user projects.
 - `.cmsms/public/uploads` is a Mutagen bind-mount (`upload_dirs`); `rm -rf .cmsms/public` fails "Device or resource busy" — reinstall empties in place, skipping the mountpoint.
 - CMSMS bootstrap quirks (2.2.22): `require_once lib/smarty/Smarty.class.php` after `include.php` (headless runs never trigger Smarty's autoloader), and `unset($GLOBALS['CMS_INSTALL_PAGE'])` before `ModuleOperations` calls (else fresh non-system modules are discarded on load).
-- Host bash is macOS 3.2 — no bash-4 constructs in `commands/host/cmsms`.
+- Host commands must run on macOS/Linux/WSL2/git-bash: bash 3.2 is the floor (no bash-4 constructs), userland must be BSD+GNU portable, and new external host dependencies need a `command -v` guard with an actionable error.
 - Don't pin `php_version` in `config.cmsms.yaml`: config.*.yaml merges after config.yaml and would silently override `ddev config --php-version`.
 - Skeleton templates in `cmsms/skeletons/` carry a `#ddev-generated` comment line (so add-on upgrades refresh them); `scaffold_from_skeleton` strips those lines when generating user files — generated user code must never carry the marker.
 

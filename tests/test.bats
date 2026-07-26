@@ -67,6 +67,14 @@ setup() {
   assert_success
   # the drop-in itself must survive
   assert_file_exists .ddev/cmsms/cache/cmsms-9.9.9-install.zip
+  # file:// escape hatch: same zip via CMSMS_INSTALLER_URL, with the drop-in
+  # cleared first — otherwise it would shadow the URL (same canonical name)
+  ddev exec "rm -rf /mnt/ddev_config/cmsms/cache/cmsms-9.9.9 && cp /var/www/html/local999.zip /tmp/local999.zip"
+  rm -f ${TESTDIR}/.ddev/cmsms/cache/cmsms-9.9.9-install.zip
+  run ddev exec "CMSMS_VERSION=9.9.9 CMSMS_INSTALLER_URL=file:///tmp/local999.zip bash /mnt/ddev_config/commands/web/cmsms-install fetch"
+  assert_success
+  run ddev exec test -s /mnt/ddev_config/cmsms/cache/cmsms-9.9.9/installer.php
+  assert_success
   # cleanup: drop-in, expanded cache dir, scratch files
   rm -f ${TESTDIR}/local999.zip ${TESTDIR}/.ddev/cmsms/cache/cmsms-9.9.9-install.zip
   ddev exec "rm -rf /mnt/ddev_config/cmsms/cache/cmsms-9.9.9 /tmp/local999.zip /tmp/cmsms-9.9.9-install.php"

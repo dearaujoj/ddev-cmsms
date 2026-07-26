@@ -44,6 +44,7 @@ and generates a starter for you (or run `ddev cmsms scaffold` explicitly):
 | --- | --- |
 | `ddev cmsms setup [--type module\|plugin\|theme] [--name NAME] [--version X.Y.Z] [--yes\|-y]` | Detects (or accepts) the extension type/name and CMSMS version, validates them, and writes `.ddev/config.cmsms-project.yaml`. Without `--yes`, prompts interactively for anything not passed as a flag, offering the auto-detected value as the default. `--yes`/`-y` runs fully non-interactively, falling back to auto-detected values for anything not passed. |
 | `ddev cmsms scaffold [--type T --name N] [--yes\|-y]` | Generates a working starter: module (module class + default/admin actions + template + lang), plugin (`function.<name>.php`), or admin theme (a renamed copy of the core's OneEleven — requires an installed site). Refuses to overwrite existing files. `setup` offers this automatically when the repo is empty. |
+| `ddev cmsms load <zip> [--use]` | Validates a local CMSMS installer zip (e.g. `~/Downloads/cmsms-2.2.23-install.zip`) and puts it in the cache under its canonical name — the version is read from the zip's own payload, so renamed files and custom/unreleased builds work. `--use` also sets `CMSMS_VERSION` in the project config. |
 | `ddev cmsms admin` | Prints the actual admin credentials (`admin`/`admin` unless overridden, read from the running container) and opens `/admin` in your browser. |
 | `ddev cmsms status` | Reports the installed CMSMS core version vs. the configured one and the extension type/name; for module projects, also reports whether it's symlinked and registered in the database. |
 | `ddev cmsms reinstall [--yes]` | Drops the database and clears the core/installer files (keeping the download cache and `uploads/`), then re-runs the full install. Prompts for confirmation unless `--yes`/`-y` is passed — this is destructive. |
@@ -67,11 +68,27 @@ Other environment variables, settable via `.ddev/config.cmsms-project.yaml`'s `w
 
 | Variable | Purpose |
 | --- | --- |
-| `CMSMS_INSTALLER_URL` | Overrides the resolved download URL — point it at a direct `cmsms-X.Y.Z-install.zip` URL (mirror or local file server) if the default Forge URL is unreachable. |
+| `CMSMS_INSTALLER_URL` | Overrides the resolved download URL — point it at a direct `cmsms-X.Y.Z-install.zip` URL (mirror or local file server) if the default Forge URL is unreachable (a loaded local zip takes precedence). |
 | `CMSMS_SAMPLE_CONTENT` | Set to `1` to install CMSMS's demo/sample content instead of the minimal default page. |
 | `CMSMS_ADMIN_USER` / `CMSMS_ADMIN_PASSWORD` | Override the admin account created during install (default `admin`/`admin`). |
 | `CMSMS_LINK_EXCLUDE` | Space-separated list of top-level repo entries to skip when symlinking (default: `.ddev .cmsms .git .gitignore dist docs`). |
 | `CMSMS_INSTALL_VERBOSE` | Set to `1` for verbose per-module logging during the headless DB install. |
+
+### Using a local installer zip
+
+Have the installer on disk (offline work, betas, or cores you built
+yourself)? Load it — the version is derived from the zip's payload, and
+versions.json is bypassed entirely for that version:
+
+    ddev cmsms load ~/Downloads/cmsms-2.2.23-install.zip --use
+    ddev restart && ddev cmsms reinstall --yes   # if the project was already installed
+
+Without `--use`, the zip just lands in `.ddev/cmsms/cache/` and you select
+it with `ddev cmsms setup --version 2.2.23`. Power users can also drop a
+correctly named `cmsms-<version>-install.zip` into `.ddev/cmsms/cache/` by
+hand, or point `CMSMS_INSTALLER_URL` at any `http(s)://` or `file://` URL
+reachable from inside the web container. A loaded zip for the configured
+version always wins over `CMSMS_INSTALLER_URL`.
 
 ## Testing against another core / PHP version
 
