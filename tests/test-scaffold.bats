@@ -32,11 +32,12 @@ setup() {
   run grep -q "class Fresh extends CMSModule" Fresh.module.php
   assert_success
   # marker must be stripped from generated user files
-  run grep -r "ddev-generated" Fresh.module.php action.default.php templates/default.tpl lang/en_US.php
+  run grep -r "ddev-generated" Fresh.module.php action.default.php action.defaultadmin.php templates/default.tpl lang/en_US.php
   assert_failure
   if command -v php >/dev/null 2>&1; then
     run php -l Fresh.module.php; assert_success
     run php -l action.default.php; assert_success
+    run php -l action.defaultadmin.php; assert_success
     run php -l lang/en_US.php; assert_success
   fi
 }
@@ -56,6 +57,17 @@ setup() {
 @test "scaffold refuses to overwrite an existing target" {
   cd ${SCAFDIR}
   run ddev cmsms scaffold --type module --name Fresh --yes
+  assert_failure
+  assert_output --partial "refusing to overwrite"
+}
+
+@test "scaffold refuses to overwrite non-name-bearing files from a prior module" {
+  cd ${SCAFDIR}
+  # action.default.php, action.defaultadmin.php, templates/default.tpl, and
+  # lang/en_US.php don't embed the module name, so scaffolding a second
+  # module (Other) into the same dir must still be refused because those
+  # files already exist from the Fresh module scaffolded earlier.
+  run ddev cmsms scaffold --type module --name Other --yes
   assert_failure
   assert_output --partial "refusing to overwrite"
 }

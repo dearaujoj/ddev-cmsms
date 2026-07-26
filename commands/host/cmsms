@@ -31,14 +31,41 @@ default_version() {
 # contents, and stripping every line that contains the #ddev-generated marker
 # (templates carry it so add-on upgrades refresh them; generated user code
 # must ship clean).
+#
+# Two passes: first compute every destination path and refuse (listing what's
+# in the way) if ANY of them already exists, then write. A single filename
+# check in the caller (e.g. ./$name.module.php) isn't enough — other skeleton
+# files like action.default.php or templates/default.tpl don't embed the
+# module name, so scaffolding a second module/plugin into the same dir would
+# otherwise silently clobber the first one's non-name-bearing files.
 scaffold_from_skeleton() {
   local src=$1 dest=$2 name=$3 lname rel out
   lname=$(echo "$name" | tr '[:upper:]' '[:lower:]')
-  ( cd "$src" && find . -type f ) | while IFS= read -r rel; do
+
+  local rels=() outs=() existing=()
+  while IFS= read -r rel; do
     rel=${rel#./}
+    rels+=("$rel")
     out=$dest/$(echo "$rel" | sed -e "s/__NAME__/$name/g" -e "s/__name__/$lname/g")
+    outs+=("$out")
+    [ -e "$out" ] && existing+=("$out")
+  done < <( cd "$src" && find . -type f )
+
+  if [ "${#existing[@]}" -gt 0 ]; then
+    echo "refusing to overwrite existing file(s):" >&2
+    printf '  %s\n' "${existing[@]}" >&2
+    exit 2
+  fi
+
+  local i
+  for i in "${!rels[@]}"; do
+    rel=${rels[$i]}
+    out=${outs[$i]}
     mkdir -p "$(dirname "$out")"
-    sed -e "s/__NAME__/$name/g" -e "s/__name__/$lname/g" "$src/$rel" | grep -v '#ddev-generated' > "$out"
+    # `grep -v` alone would exit 1 (aborting under pipefail) if a skeleton
+    # file consists solely of marker lines; `|| true` makes "empty output
+    # file" the correct, non-fatal result of that case.
+    sed -e "s/__NAME__/$name/g" -e "s/__name__/$lname/g" "$src/$rel" | { grep -v '#ddev-generated' || true; } > "$out"
   done
 }
 
