@@ -131,3 +131,15 @@ setup() {
   run bash -c "ddev mysql -N -e \"SELECT COUNT(*) FROM cms_modules WHERE module_name='SkeletonTest'\""
   assert_output "1"
 }
+
+@test "theme scaffold copies OneEleven under the new name" {
+  cd ${TESTDIR}
+  run ddev cmsms scaffold --type theme --name FreshTheme --yes
+  assert_success
+  assert_file_exists FreshTheme/FreshThemeTheme.php
+  run grep -q "class FreshThemeTheme" FreshTheme/FreshThemeTheme.php
+  assert_success
+  run grep -rq "OneEleven" FreshTheme/FreshThemeTheme.php
+  assert_failure
+  rm -rf ${TESTDIR}/FreshTheme   # keep the shared module project clean
+}

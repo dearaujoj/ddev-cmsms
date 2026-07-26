@@ -120,7 +120,19 @@ cmd_scaffold() {
       echo "scaffolded plugin function.$lname.php — 'ddev start' links it into the site"
       ;;
     theme)
-      echo "theme scaffolding not implemented yet" >&2; exit 2
+      [ -e "./$name" ] && { echo "./$name already exists — refusing to overwrite" >&2; exit 2; }
+      local theme_src=.cmsms/public/admin/themes/OneEleven
+      if [ ! -d "$theme_src" ]; then
+        echo "core not installed yet — run 'ddev start' first, then re-run 'ddev cmsms scaffold'" >&2
+        exit 2
+      fi
+      # The CMSMS-idiomatic starter admin theme is a renamed copy of OneEleven.
+      cp -R "$theme_src" "./$name"
+      mv "./$name/OneElevenTheme.php" "./$name/${name}Theme.php"
+      # rename the class (and any self-references) inside the theme class file;
+      # sed -i needs a suffix arg on macOS/BSD
+      sed -i.bak "s/OneEleven/$name/g" "./$name/${name}Theme.php" && rm -f "./$name/${name}Theme.php.bak"
+      echo "scaffolded admin theme $name/ — link it with 'ddev cmsms-install link' (or next 'ddev start')"
       ;;
   esac
 }
