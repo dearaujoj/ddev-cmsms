@@ -337,6 +337,15 @@ cmd_load() {
     echo "expected exactly one cmsms-<version>-install.php inside $zip (found: ${count:-0})" >&2
     exit 2
   fi
+  # Same match, but with the path separator allowed through, so a nested
+  # entry (e.g. sub/cmsms-X-install.php) shows up as a "/"-bearing string —
+  # stage_fetch expects the phar at the zip root and can't use a nested one.
+  local inner_path
+  inner_path=$(printf '%s\n' "$listing" | grep -oE '[^ ]*cmsms-[^ /]*-install\.php' | sort -u || true)
+  if printf '%s\n' "$inner_path" | grep -q '/'; then
+    echo "installer phar must be at the zip root (found nested: $inner_path)" >&2
+    exit 2
+  fi
   version=$(printf '%s' "$inner" | sed -E 's/^cmsms-(.+)-install\.php$/\1/')
   if ! [[ "$version" =~ ^[0-9][0-9.]*([.-][A-Za-z0-9.]+)?$ ]]; then
     echo "inner phar '$inner' has an unparseable version '$version'" >&2
@@ -347,6 +356,11 @@ cmd_load() {
   mkdir -p .ddev/cmsms/cache
   [ -e "$dest" ] && echo "note: replacing existing $dest"
   cp "$zip" "$dest"
+  # stage_fetch short-circuits when the expanded dir already exists, so a
+  # same-version reload must clear it too — otherwise a rebuilt/corrected
+  # core in the new zip never gets re-expanded and reinstall silently keeps
+  # serving whatever was expanded from the old zip.
+  rm -rf ".ddev/cmsms/cache/cmsms-$version"
   echo "loaded CMSMS $version into the cache ($dest)"
 
   if [ "$use" = 1 ]; then
@@ -364,6 +378,12 @@ cmd_load() {
       exit 2
     fi
     rm -f "$PROJECT_CONFIG.bak"
+    # The sed pattern above is anchored to the exact "  - CMSMS_VERSION="
+    # format cmd_setup writes. If the file was hand-edited (re-indented, etc)
+    # sed matches nothing and exits 0 with the file unchanged — verify the
+    # rewrite actually landed instead of trusting sed's exit code alone.
+    grep -q "CMSMS_VERSION=$version" "$PROJECT_CONFIG" \
+      || { echo "could not find a CMSMS_VERSION= line to update in $PROJECT_CONFIG — edit it manually" >&2; exit 2; }
     echo "set CMSMS_VERSION=$version in $PROJECT_CONFIG — run 'ddev restart', then 'ddev cmsms reinstall' to switch cores"
   else
     echo "use it with: ddev cmsms setup --version $version   (or re-run load with --use)"
