@@ -143,3 +143,16 @@ EOF
   ddev delete -Oy test-ddev-cmsms-ws-add >/dev/null 2>&1 || true
   rm -rf ${ADDDIR}
 }
+
+@test "package <Name> builds one workspace module's XML" {
+  cd ${WSDIR}
+  run ddev cmsms package ModuleA
+  assert_success
+  assert_file_exists dist/ModuleA-1.0.0.xml
+  run ddev cmsms package
+  assert_failure
+  assert_output --partial "pass the module name"
+  run ddev cmsms package MyTags
+  assert_failure
+  assert_output --partial "not a module entry"
+}

@@ -425,7 +425,18 @@ cmd_reinstall() {
 }
 
 cmd_package() {
-  local ext_type ext_name
+  local target="${1:-}" extensions ext_type ext_name
+  extensions=$(ddev exec 'printf "%s" "${CMSMS_EXTENSIONS:-}"' 2>/dev/null || true)
+  if [ -n "$extensions" ]; then
+    [ -n "$target" ] || { echo "workspace mode: pass the module name — ddev cmsms package <Name>" >&2; exit 2; }
+    if ! [[ "$target" =~ ^[A-Za-z0-9_]+$ ]]; then
+      echo "invalid name '$target'" >&2; exit 2
+    fi
+    printf '%s\n' $extensions | grep -qx "module:$target" \
+      || { echo "'$target' is not a module entry in CMSMS_EXTENSIONS" >&2; exit 2; }
+    ddev exec php /mnt/ddev_config/cmsms/package.php /var/www/html/.cmsms/public "$target" /var/www/html/dist
+    return
+  fi
   ext_type=$(ddev exec 'printf "%s" "${CMSMS_EXT_TYPE:-}"')
   ext_name=$(ddev exec 'printf "%s" "${CMSMS_EXT_NAME:-}"')
   [ "$ext_type" = "module" ] || { echo "package only works for module projects (this is: ${ext_type:-unset})" >&2; exit 2; }
@@ -591,6 +602,6 @@ case "${1:-}" in
   admin)     cmd_admin ;;
   status)    cmd_status ;;
   reinstall) shift || true; cmd_reinstall "$@" ;;
-  package)   cmd_package ;;
+  package)   shift; cmd_package "$@" ;;
   *) echo "usage: ddev cmsms [setup|scaffold|load|add|admin|reinstall|package|status]"; exit 2 ;;
 esac

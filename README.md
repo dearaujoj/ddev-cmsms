@@ -38,18 +38,45 @@ and generates a starter for you (or run `ddev cmsms scaffold` explicitly):
     ddev cmsms setup --type module --name MyModule --yes   # scaffolds MyModule.module.php & co.
     ddev start                                             # installs CMSMS with your new module live
 
+### Workspace mode: several extensions, one site
+
+Developing modules that depend on each other (plus plugins, or the admin
+theme that showcases them)? Make the project root a workspace — one
+subdirectory per extension, named after it. Subdirectories can be separate
+git clones, submodules, or plain folders in a monorepo; the add-on doesn't
+care:
+
+    my-suite/
+    ├── ModuleA/ModuleA.module.php
+    ├── ModuleB/ModuleB.module.php      # GetDependencies() → ModuleA
+    └── MyTags/function.mytag.php
+
+    ddev config --project-type=php --docroot=.cmsms/public
+    ddev add-on get dearaujoj/ddev-cmsms
+    ddev cmsms setup                    # detects the subdirs, proposes the list
+    ddev start                          # installs the site with ALL of them linked
+
+The list lives in `.ddev/config.cmsms-project.yaml` as
+`CMSMS_EXTENSIONS=module:ModuleA module:ModuleB plugin:MyTags` — **order is
+install order**, so list dependencies before dependents. Grow the workspace
+with `ddev cmsms add module ModuleC` (scaffolds the subdir if missing), check
+everything with `ddev cmsms status`, and package one module with
+`ddev cmsms package ModuleA`. A failing entry (missing directory, failed
+registration) is warned and skipped — it never breaks `ddev start`. If you
+list several `theme:` entries, the last one becomes the active admin theme.
+
 ## Commands
 
 | Command | Description |
 | --- | --- |
-| `ddev cmsms setup [--type module\|plugin\|theme] [--name NAME] [--version X.Y.Z] [--yes\|-y]` | Detects (or accepts) the extension type/name and CMSMS version, validates them, and writes `.ddev/config.cmsms-project.yaml`. Without `--yes`, prompts interactively for anything not passed as a flag, offering the auto-detected value as the default. `--yes`/`-y` runs fully non-interactively, falling back to auto-detected values for anything not passed. |
+| `ddev cmsms setup [--type module\|plugin\|theme] [--name NAME] [--version X.Y.Z] [--extensions "type:Name …"] [--yes\|-y]` | Detects (or accepts) the extension type/name and CMSMS version, validates them, and writes `.ddev/config.cmsms-project.yaml`. Without `--yes`, prompts interactively for anything not passed as a flag, offering the auto-detected value as the default. `--yes`/`-y` runs fully non-interactively, falling back to auto-detected values for anything not passed. `--extensions` switches to workspace mode (mutually exclusive with `--type`/`--name`); omit it with an empty repo containing extension-named subdirectories and setup detects and proposes the list. |
 | `ddev cmsms scaffold [--type T --name N] [--dir NAME] [--yes\|-y]` | Generates a working starter: module (module class + default/admin actions + template + lang), plugin (`function.<name>.php`), or admin theme (a renamed copy of the core's OneEleven — requires an installed site). `--dir NAME` targets `./NAME/` instead of the repo root (for theme, `NAME` must equal the extension name). Refuses to overwrite existing files. `setup` offers this automatically when the repo is empty. |
 | `ddev cmsms load <zip> [--use]` | Validates a local CMSMS installer zip (e.g. `~/Downloads/cmsms-2.2.23-install.zip`) and puts it in the cache under its canonical name — the version is read from the zip's own payload, so renamed files and custom/unreleased builds work. `--use` also sets `CMSMS_VERSION` in the project config. |
 | `ddev cmsms add <module\|plugin\|theme> <Name> [--yes\|-y]` | Workspace projects only: appends `type:Name` to `CMSMS_EXTENSIONS` in `.ddev/config.cmsms-project.yaml` (no-op with a note if already listed), and offers to scaffold a starter into `./Name/` when that directory doesn't exist yet. |
 | `ddev cmsms admin` | Prints the actual admin credentials (`admin`/`admin` unless overridden, read from the running container) and opens `/admin` in your browser. |
 | `ddev cmsms status` | Reports the installed CMSMS core version vs. the configured one and the extension type/name; for module projects, also reports whether it's symlinked and registered in the database. |
 | `ddev cmsms reinstall [--yes]` | Drops the database and clears the core/installer files (keeping the download cache and `uploads/`), then re-runs the full install. Prompts for confirmation unless `--yes`/`-y` is passed — this is destructive. |
-| `ddev cmsms package` | Module projects only. Builds the distributable module XML via the module's own `CreateXMLPackage()`, written to `dist/<Name>-<version>.xml`. |
+| `ddev cmsms package [<Name>]` | Module projects only. Builds the distributable module XML via the module's own `CreateXMLPackage()`, written to `dist/<Name>-<version>.xml`. `<Name>` is required in workspace mode, and must name a `module:` entry in `CMSMS_EXTENSIONS`. |
 
 Setup validates `--name` against `^[A-Za-z0-9_]+$` and `--version` against a dotted-numeric pattern; invalid values are rejected with an error before anything is written.
 
