@@ -12,6 +12,31 @@ permissions:
   contents: read
 
 jobs:
+  # Diff gate: implementation changes must come with test changes.
+  # PR-only (direct pushes to main bypass PR checks by nature); escape hatch
+  # for legitimate test-free changes: label the PR "no-tests-needed".
+  tests-required:
+    if: github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'no-tests-needed')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: New code must come with tests
+        run: |
+          base="origin/${{ github.base_ref }}"
+          git fetch --no-tags origin "${{ github.base_ref }}" >/dev/null 2>&1 || true
+          changed=$(git diff --name-only "$base"...HEAD)
+          echo "Changed files:"
+          echo "$changed"
+          code=$(echo "$changed" | grep -E '^(commands/|cmsms/|scripts/)' || true)
+          tests=$(echo "$changed" | grep -E '^tests/' || true)
+          if [ -n "$code" ] && [ -z "$tests" ]; then
+            echo "::error::Implementation files changed without any test changes. Add or update a bats test in tests/, or label the PR 'no-tests-needed' if this change genuinely needs none."
+            exit 1
+          fi
+          echo "OK: code+tests changed together (or no implementation files touched)."
+
   tests:
     strategy:
       fail-fast: false
