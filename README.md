@@ -163,6 +163,12 @@ The `.cmsms/` directory (downloaded core, installer scratch space, generated `co
 - **Not sure what's installed or linked**: `ddev cmsms status` reports the core version and configured extension in one shot; for module projects it also reports symlink state and DB registration.
 - **Need a database GUI**: this add-on depends on [`ddev/ddev-phpmyadmin`](https://github.com/ddev/ddev-phpmyadmin) — run `ddev phpmyadmin` to open it.
 
+## Contributing
+
+PRs welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for the test
+requirements (CI enforces that implementation changes come with tests),
+how to run the bats suites locally, and the portability conventions.
+
 ## Credits / License
 
 Built for [CMS Made Simple](https://www.cmsmadesimple.org) extension developers on top of [DDEV](https://ddev.com).
