@@ -58,3 +58,50 @@ EOF
   assert_output --partial "skipped"
   assert_output --partial "1 linked, 2 skipped"
 }
+
+@test "setup --extensions writes the workspace config" {
+  cd ${WSDIR}
+  run ddev cmsms setup --extensions "module:ModuleA module:ModuleB plugin:MyTags" --version ${CMSMS_TEST_VERSION} --yes
+  assert_success
+  run grep -q "^  - CMSMS_EXTENSIONS=module:ModuleA module:ModuleB plugin:MyTags$" .ddev/config.cmsms-project.yaml
+  assert_success
+  run grep -q "CMSMS_EXT_TYPE" .ddev/config.cmsms-project.yaml
+  assert_failure   # never both modes
+}
+
+@test "setup --extensions rejects bad entries and mixing with --type" {
+  cd ${WSDIR}
+  run ddev cmsms setup --extensions "module:Bad-Name" --yes
+  assert_failure
+  assert_output --partial "invalid extension entry"
+  run ddev cmsms setup --extensions "module:ModuleA" --type module --yes
+  assert_failure
+  assert_output --partial "mutually exclusive"
+}
+
+@test "setup --yes auto-detects workspace subdirs" {
+  export DETDIR=~/tmp/test-ddev-cmsms-ws-detect
+  ddev delete -Oy test-ddev-cmsms-ws-detect >/dev/null 2>&1 || true
+  rm -rf ${DETDIR} && mkdir -p ${DETDIR}
+  cp -r ${DIR}/tests/testdata/workspace/. ${DETDIR}/
+  cd ${DETDIR}
+  mkdir -p .cmsms/public
+  ddev config --project-name=test-ddev-cmsms-ws-detect --project-type=php --docroot=.cmsms/public
+  ddev add-on get ${DIR}
+  run ddev cmsms setup --yes
+  assert_success
+  run grep -q "CMSMS_EXTENSIONS=module:ModuleA module:ModuleB plugin:MyTags" .ddev/config.cmsms-project.yaml
+  assert_success
+  ddev delete -Oy test-ddev-cmsms-ws-detect >/dev/null 2>&1 || true
+  rm -rf ${DETDIR}
+}
+
+@test "status lists workspace entries with link and registration state" {
+  cd ${WSDIR}
+  run ddev cmsms status
+  assert_success
+  assert_output --partial "module:ModuleA"
+  assert_output --partial "module:ModuleB"
+  assert_output --partial "plugin:MyTags"
+  assert_output --partial "registered"
+}
