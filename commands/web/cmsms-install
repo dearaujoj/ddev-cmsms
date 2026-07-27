@@ -127,6 +127,7 @@ link_workspace_entry() {
   case "$etype" in
     module)
       [ -f "$PROJECT_ROOT/$ename/$ename.module.php" ] || die "link: no $ename/$ename.module.php"
+      [ ! -e "$PROJECT_ROOT/$ename/.cmsms" ] || die "link: $ename/ contains a nested .cmsms/ — remove it (whole-dir linking would create a scan cycle)"
       log "link: module $ename"
       # whole-dir symlink is cycle-safe here: .cmsms lives at the WORKSPACE
       # root, not inside the extension subdir (unlike single mode, where the
@@ -149,6 +150,7 @@ link_workspace_entry() {
       ;;
     theme)
       [ -f "$PROJECT_ROOT/$ename/${ename}Theme.php" ] || die "link: no $ename/${ename}Theme.php"
+      [ ! -e "$PROJECT_ROOT/$ename/.cmsms" ] || die "link: $ename/ contains a nested .cmsms/ — remove it (whole-dir linking would create a scan cycle)"
       log "link: admin theme $ename"
       ln -sfn "../../../../$ename" "$DOCROOT/admin/themes/$ename"
       php "$PAYLOAD_DIR/register-extension.php" "$DOCROOT" theme "$ename" || die "theme registration failed for $ename"

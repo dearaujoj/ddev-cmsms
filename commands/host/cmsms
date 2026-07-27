@@ -378,6 +378,7 @@ cmd_status() {
           if ddev exec bash -c 'for f in /var/www/html/'"$ename"'/function.*.php /var/www/html/'"$ename"'/modifier.*.php; do [ -e "/var/www/html/.cmsms/public/plugins/$(basename "$f")" ] && exit 0; done; exit 1' >/dev/null 2>&1; then lk=linked; else lk="NOT linked"; fi
           echo "  plugin:$ename — $lk"
           ;;
+        *) echo "  $entry — unknown type" ;;
       esac
     done
   elif [ -n "$ext_name" ] && [ "$ext_type" = "module" ]; then
@@ -591,7 +592,7 @@ cmd_add() {
       esac
     fi
   fi
-  echo "next: ddev restart   (or 'ddev cmsms-install link' if already running)"
+  echo "next: ddev restart   (web_environment changes need a restart to reach the container)"
 }
 
 case "${1:-}" in

@@ -88,6 +88,7 @@ Extension identity and target CMSMS version live in `.ddev/config.cmsms-project.
 
 | Variable | Purpose |
 | --- | --- |
+| `CMSMS_EXTENSIONS` | Workspace mode: ordered space-separated `type:Name` list (see [Workspace mode](#workspace-mode-several-extensions-one-site)); when set it takes precedence over `CMSMS_EXT_TYPE`/`CMSMS_EXT_NAME`. |
 | `CMSMS_EXT_TYPE` | `module`, `plugin`, or `theme`. |
 | `CMSMS_EXT_NAME` | Extension name (module class name, theme name — not used for plugins). |
 | `CMSMS_VERSION` | CMSMS core version to install; must be a key in `cmsms/versions.json`. |
