@@ -72,6 +72,16 @@ setup() {
   assert_output --partial "refusing to overwrite"
 }
 
+@test "scaffold --dir generates the starter into a subdirectory" {
+  cd ${SCAFDIR}
+  run ddev cmsms scaffold --type module --name SubMod --dir SubMod --yes
+  assert_success
+  assert_file_exists SubMod/SubMod.module.php
+  assert_file_exists SubMod/action.default.php
+  run grep -rq "ddev-generated" SubMod/SubMod.module.php
+  assert_failure
+}
+
 @test "setup --yes on an empty repo auto-scaffolds the module" {
   export SETUPDIR=~/tmp/test-ddev-cmsms-scaffold-setup
   ddev delete -Oy test-ddev-cmsms-scaffold-setup >/dev/null 2>&1 || true

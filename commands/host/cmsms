@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #ddev-generated
-## Description: CMSMS dev helpers (setup, load, admin, reinstall, package, status)
-## Usage: cmsms [setup|scaffold|load|admin|reinstall|package|status]
+## Description: CMSMS dev helpers (setup, load, add, admin, reinstall, package, status)
+## Usage: cmsms [setup|scaffold|load|add|admin|reinstall|package|status]
 ## Example: ddev cmsms setup
 set -eu -o pipefail
 
@@ -101,7 +101,7 @@ scaffold_from_skeleton() {
 }
 
 cmd_scaffold() {
-  local type="" name="" yes=0
+  local type="" name="" dir="" yes=0
   while [ $# -gt 0 ]; do
     case "$1" in
       --type)
@@ -110,6 +110,9 @@ cmd_scaffold() {
       --name)
         case "${2:-}" in ''|--*) echo "missing value for --name" >&2; exit 2 ;; esac
         name=$2; shift 2 ;;
+      --dir)
+        case "${2:-}" in ''|--*) echo "missing value for --dir" >&2; exit 2 ;; esac
+        dir=$2; shift 2 ;;
       --yes|-y) yes=1; shift ;;
       *) echo "unknown option $1" >&2; exit 2 ;;
     esac
@@ -139,18 +142,33 @@ cmd_scaffold() {
   local lname
   lname=$(echo "$name" | tr '[:upper:]' '[:lower:]')
 
+  local dest="."
+  if [ -n "$dir" ]; then
+    if ! [[ "$dir" =~ ^[A-Za-z0-9_]+$ ]]; then
+      echo "invalid --dir '$dir': must match ^[A-Za-z0-9_]+\$" >&2
+      exit 2
+    fi
+    dest="./$dir"
+  fi
+
   case "$type" in
     module)
-      [ -e "./$name.module.php" ] && { echo "./$name.module.php already exists — refusing to overwrite" >&2; exit 2; }
-      scaffold_from_skeleton .ddev/cmsms/skeletons/module . "$name"
-      echo "scaffolded module $name — edit $name.module.php, then 'ddev start' to install it"
+      [ -e "$dest/$name.module.php" ] && { echo "$dest/$name.module.php already exists — refusing to overwrite" >&2; exit 2; }
+      mkdir -p "$dest"
+      scaffold_from_skeleton .ddev/cmsms/skeletons/module "$dest" "$name"
+      echo "scaffolded module $name — edit $dest/$name.module.php, then 'ddev start' to install it"
       ;;
     plugin)
-      [ -e "./function.$lname.php" ] && { echo "./function.$lname.php already exists — refusing to overwrite" >&2; exit 2; }
-      scaffold_from_skeleton .ddev/cmsms/skeletons/plugin . "$name"
+      [ -e "$dest/function.$lname.php" ] && { echo "$dest/function.$lname.php already exists — refusing to overwrite" >&2; exit 2; }
+      mkdir -p "$dest"
+      scaffold_from_skeleton .ddev/cmsms/skeletons/plugin "$dest" "$name"
       echo "scaffolded plugin function.$lname.php — 'ddev start' links it into the site"
       ;;
     theme)
+      if [ -n "$dir" ] && [ "$dir" != "$name" ]; then
+        echo "theme scaffold requires --dir to equal the theme name ($name) — the directory name IS the theme name" >&2
+        exit 2
+      fi
       [ -e "./$name" ] && { echo "./$name already exists — refusing to overwrite" >&2; exit 2; }
       local theme_src=.cmsms/public/admin/themes/OneEleven
       if [ ! -d "$theme_src" ]; then
@@ -504,13 +522,64 @@ cmd_load() {
   fi
 }
 
+cmd_add() {
+  local etype="" ename="" yes=0
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --yes|-y) yes=1; shift ;;
+      -*) echo "unknown option $1" >&2; exit 2 ;;
+      *)
+        if [ -z "$etype" ]; then etype=$1
+        elif [ -z "$ename" ]; then ename=$1
+        else echo "unexpected extra argument '$1'" >&2; exit 2; fi
+        shift ;;
+    esac
+  done
+  [ -n "$etype" ] && [ -n "$ename" ] || { echo "usage: ddev cmsms add <module|plugin|theme> <Name> [--yes]" >&2; exit 2; }
+  validate_entries "$etype:$ename" || exit 2
+  [ -f "$PROJECT_CONFIG" ] || { echo "no $PROJECT_CONFIG — run 'ddev cmsms setup' first" >&2; exit 2; }
+  grep -q "CMSMS_EXTENSIONS=" "$PROJECT_CONFIG" \
+    || { echo "$PROJECT_CONFIG is single-extension mode — re-run 'ddev cmsms setup' (workspace) to convert" >&2; exit 2; }
+
+  if grep -Eq "CMSMS_EXTENSIONS=.*(=| )$etype:$ename( |\$)" "$PROJECT_CONFIG"; then
+    echo "note: $etype:$ename already listed"
+  else
+    # same rewrite discipline as load --use: explicit failure check + post-grep
+    if ! sed -i.bak "s|^  - CMSMS_EXTENSIONS=.*|& $etype:$ename|" "$PROJECT_CONFIG"; then
+      rm -f "$PROJECT_CONFIG.bak"
+      echo "could not update $PROJECT_CONFIG — check permissions" >&2
+      exit 2
+    fi
+    rm -f "$PROJECT_CONFIG.bak"
+    grep -Eq "CMSMS_EXTENSIONS=.*(=| )$etype:$ename( |\$)" "$PROJECT_CONFIG" \
+      || { echo "could not find the CMSMS_EXTENSIONS line to update in $PROJECT_CONFIG — edit it manually" >&2; exit 2; }
+    echo "added $etype:$ename to $PROJECT_CONFIG"
+  fi
+
+  if [ ! -d "./$ename" ]; then
+    if [ "$yes" = 1 ]; then
+      ( cmd_scaffold --type "$etype" --name "$ename" --dir "$ename" --yes ) \
+        || echo "warning: scaffold failed (see above) — create ./$ename yourself" >&2
+    else
+      read -r -p "No ./$ename directory — scaffold a starter $etype there? [Y/n] " ans || ans=""
+      case "$ans" in
+        n|N|no) echo "note: create ./$ename before the next start" ;;
+        *) ( cmd_scaffold --type "$etype" --name "$ename" --dir "$ename" --yes ) \
+             || echo "warning: scaffold failed (see above) — create ./$ename yourself" >&2 ;;
+      esac
+    fi
+  fi
+  echo "next: ddev restart   (or 'ddev cmsms-install link' if already running)"
+}
+
 case "${1:-}" in
   setup)     shift; cmd_setup "$@" ;;
   scaffold)  shift; cmd_scaffold "$@" ;;
   load)      shift; cmd_load "$@" ;;
+  add)       shift; cmd_add "$@" ;;
   admin)     cmd_admin ;;
   status)    cmd_status ;;
   reinstall) shift || true; cmd_reinstall "$@" ;;
   package)   cmd_package ;;
-  *) echo "usage: ddev cmsms [setup|scaffold|load|admin|reinstall|package|status]"; exit 2 ;;
+  *) echo "usage: ddev cmsms [setup|scaffold|load|add|admin|reinstall|package|status]"; exit 2 ;;
 esac

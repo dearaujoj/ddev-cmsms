@@ -105,3 +105,32 @@ EOF
   assert_output --partial "plugin:MyTags"
   assert_output --partial "registered"
 }
+
+@test "add appends an entry and scaffolds the missing subdir" {
+  cd ${WSDIR}
+  run ddev cmsms add module ModuleC --yes
+  assert_success
+  run grep -q "CMSMS_EXTENSIONS=module:ModuleA module:ModuleB plugin:MyTags module:ModuleC" .ddev/config.cmsms-project.yaml
+  assert_success
+  assert_file_exists ModuleC/ModuleC.module.php
+  # cleanup: restore the config and remove the scaffolded dir so later tests
+  # (and re-runs) see the canonical three-entry workspace
+  sed -i.bak 's/ module:ModuleC//' .ddev/config.cmsms-project.yaml && rm -f .ddev/config.cmsms-project.yaml.bak
+  rm -rf ModuleC
+}
+
+@test "add refuses on a single-extension config" {
+  export ADDDIR=~/tmp/test-ddev-cmsms-ws-add
+  ddev delete -Oy test-ddev-cmsms-ws-add >/dev/null 2>&1 || true
+  rm -rf ${ADDDIR} && mkdir -p ${ADDDIR}
+  cd ${ADDDIR}
+  mkdir -p .cmsms/public
+  ddev config --project-name=test-ddev-cmsms-ws-add --project-type=php --docroot=.cmsms/public
+  ddev add-on get ${DIR}
+  ddev cmsms setup --type module --name Solo --yes >/dev/null
+  run ddev cmsms add module Extra --yes
+  assert_failure
+  assert_output --partial "single-extension mode"
+  ddev delete -Oy test-ddev-cmsms-ws-add >/dev/null 2>&1 || true
+  rm -rf ${ADDDIR}
+}
