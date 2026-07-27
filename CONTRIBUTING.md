@@ -18,13 +18,33 @@ also pass before a PR can merge.
 ## Running the tests locally
 
 Prerequisites: [DDEV ≥ 1.24](https://ddev.readthedocs.io/en/stable/users/install/ddev-installation/)
-with a working Docker provider, plus bats:
+with a working Docker provider, plus bats with its helper libraries
+(`bats-support`, `bats-assert`, `bats-file`).
+
+**macOS and Linux/WSL2 — via [Homebrew](https://brew.sh)** (works identically
+on both; this is what CI uses):
 
 ```bash
 brew install bats-core
 brew tap kaos/shell
-brew install bats-assert bats-file bats-support   # macOS; on Linux CI these come from linuxbrew
+brew install bats-assert bats-file bats-support
 ```
+
+**Linux without Homebrew** — install `bats` from your distro
+(`apt/dnf install bats`) and clone the helper libraries where the test
+suites look for them (`/usr/lib/bats`):
+
+```bash
+sudo git clone --depth 1 https://github.com/bats-core/bats-support /usr/lib/bats/bats-support
+sudo git clone --depth 1 https://github.com/bats-core/bats-assert  /usr/lib/bats/bats-assert
+sudo git clone --depth 1 https://github.com/bats-core/bats-file    /usr/lib/bats/bats-file
+```
+
+**Windows**: run the suite inside WSL2 (DDEV's recommended Windows setup)
+using either Linux option above.
+
+The tests resolve the library path automatically (`brew --prefix`, falling
+back to `/usr/lib/bats`); if yours live elsewhere, set `BATS_LIB_PATH`.
 
 ```bash
 bats tests                      # full suite (~30+ min: builds real CMSMS sites)
