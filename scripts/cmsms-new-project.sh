@@ -14,7 +14,8 @@ DEFAULT_LOCATION="."
 DEFAULT_TYPE="module"
 DEFAULT_VERSION="2.2.22"
 DEFAULT_PHP="8.3"
-ADDON_REPO="dearaujoj/ddev-cmsms"
+# Overridable so tests (and forks) can point at a local working tree.
+ADDON_REPO="${CMSMS_ADDON_REPO:-dearaujoj/ddev-cmsms}"
 
 # --- Helpers -----------------------------------------------------------------
 
@@ -46,6 +47,14 @@ validate_name() {
   fi
 }
 
+# DDEV project names are DNS-style: letters/digits/hyphens (no underscores,
+# unlike extension names — ddev config would reject them later anyway).
+validate_project_name() {
+  if ! [[ "$1" =~ ^[A-Za-z0-9][A-Za-z0-9-]*$ ]]; then
+    die "invalid project name '$1': use letters, digits, and hyphens (DDEV project names are DNS-style)"
+  fi
+}
+
 # --- Preflight ---------------------------------------------------------------
 
 command -v ddev >/dev/null 2>&1 || die "ddev not found. Install it first: https://ddev.readthedocs.io/en/stable/users/install/ddev-installation/"
@@ -60,7 +69,7 @@ echo ""
 # Project name
 prompt PROJECT_NAME "Project name (becomes directory and DDEV project name)" ""
 [ -z "$PROJECT_NAME" ] && die "project name is required"
-validate_name "$PROJECT_NAME"
+validate_project_name "$PROJECT_NAME"
 
 # Location
 prompt LOCATION "Parent directory to create project in" "$DEFAULT_LOCATION"
@@ -200,7 +209,10 @@ fi
 # Set sample content env if requested (after setup writes the config, before start triggers install)
 if [ "$SAMPLE_CONTENT" = "yes" ]; then
   if grep -q '^web_environment:' .ddev/config.cmsms-project.yaml 2>/dev/null; then
-    sed -i '/^web_environment:/a\  - CMSMS_SAMPLE_CONTENT=1' .ddev/config.cmsms-project.yaml
+    # portable insert (GNU `sed -i` syntax breaks on macOS/BSD sed)
+    awk '/^web_environment:/{print; print "  - CMSMS_SAMPLE_CONTENT=1"; next}1' \
+      .ddev/config.cmsms-project.yaml > .ddev/config.cmsms-project.yaml.tmp \
+      && mv .ddev/config.cmsms-project.yaml.tmp .ddev/config.cmsms-project.yaml
   else
     printf '\nweb_environment:\n  - CMSMS_SAMPLE_CONTENT=1\n' >> .ddev/config.cmsms-project.yaml
   fi
