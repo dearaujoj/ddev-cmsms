@@ -541,20 +541,31 @@ cmd_add() {
   grep -q "CMSMS_EXTENSIONS=" "$PROJECT_CONFIG" \
     || { echo "$PROJECT_CONFIG is single-extension mode — re-run 'ddev cmsms setup' (workspace) to convert" >&2; exit 2; }
 
-  if grep -Eq "CMSMS_EXTENSIONS=.*(=| )$etype:$ename( |\$)" "$PROJECT_CONFIG"; then
-    echo "note: $etype:$ename already listed"
-  else
-    # same rewrite discipline as load --use: explicit failure check + post-grep
-    if ! sed -i.bak "s|^  - CMSMS_EXTENSIONS=.*|& $etype:$ename|" "$PROJECT_CONFIG"; then
+  # Word-membership test on the extracted value, not a substring grep on the
+  # whole line: "CMSMS_EXTENSIONS=.*(=| )$etype:$ename( |$)" can never match
+  # the FIRST entry, because the literal "CMSMS_EXTENSIONS=" itself consumes
+  # the "=" that the alternation needs as a left boundary — that would append
+  # a duplicate first entry instead of recognizing it as already listed.
+  local current
+  current=$(sed -n 's/^  - CMSMS_EXTENSIONS=//p' "$PROJECT_CONFIG")
+  case " $current " in
+    *" $etype:$ename "*) echo "note: $etype:$ename already listed" ;;
+    *)
+      # same rewrite discipline as load --use: explicit failure check + post-grep
+      if ! sed -i.bak "s|^  - CMSMS_EXTENSIONS=.*|& $etype:$ename|" "$PROJECT_CONFIG"; then
+        rm -f "$PROJECT_CONFIG.bak"
+        echo "could not update $PROJECT_CONFIG — check permissions" >&2
+        exit 2
+      fi
       rm -f "$PROJECT_CONFIG.bak"
-      echo "could not update $PROJECT_CONFIG — check permissions" >&2
-      exit 2
-    fi
-    rm -f "$PROJECT_CONFIG.bak"
-    grep -Eq "CMSMS_EXTENSIONS=.*(=| )$etype:$ename( |\$)" "$PROJECT_CONFIG" \
-      || { echo "could not find the CMSMS_EXTENSIONS line to update in $PROJECT_CONFIG — edit it manually" >&2; exit 2; }
-    echo "added $etype:$ename to $PROJECT_CONFIG"
-  fi
+      current=$(sed -n 's/^  - CMSMS_EXTENSIONS=//p' "$PROJECT_CONFIG")
+      case " $current " in
+        *" $etype:$ename "*) ;;
+        *) echo "could not find the CMSMS_EXTENSIONS line to update in $PROJECT_CONFIG — edit it manually" >&2; exit 2 ;;
+      esac
+      echo "added $etype:$ename to $PROJECT_CONFIG"
+      ;;
+  esac
 
   if [ ! -d "./$ename" ]; then
     if [ "$yes" = 1 ]; then

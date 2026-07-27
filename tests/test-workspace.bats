@@ -119,6 +119,15 @@ EOF
   rm -rf ModuleC
 }
 
+@test "add re-adding the first entry reports already-listed and leaves config unchanged" {
+  cd ${WSDIR}
+  run ddev cmsms add module ModuleA --yes
+  assert_success
+  assert_output --partial "already listed"
+  run grep -q "^  - CMSMS_EXTENSIONS=module:ModuleA module:ModuleB plugin:MyTags$" .ddev/config.cmsms-project.yaml
+  assert_success
+}
+
 @test "add refuses on a single-extension config" {
   export ADDDIR=~/tmp/test-ddev-cmsms-ws-add
   ddev delete -Oy test-ddev-cmsms-ws-add >/dev/null 2>&1 || true
