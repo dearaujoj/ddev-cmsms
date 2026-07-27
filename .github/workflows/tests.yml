@@ -15,15 +15,23 @@ jobs:
   # Diff gate: implementation changes must come with test changes.
   # PR-only (direct pushes to main bypass PR checks by nature); escape hatch
   # for legitimate test-free changes: label the PR "no-tests-needed".
+  # The label check lives INSIDE the job (not an `if:`) on purpose: this check
+  # is required by branch protection, and a skipped required check blocks the
+  # PR forever — an early exit 0 reports success instead.
   tests-required:
-    if: github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'no-tests-needed')
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: New code must come with tests
+        env:
+          PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ' ') }}
         run: |
+          case " $PR_LABELS " in
+            *" no-tests-needed "*) echo "label no-tests-needed present — gate skipped"; exit 0 ;;
+          esac
           base="origin/${{ github.base_ref }}"
           git fetch --no-tags origin "${{ github.base_ref }}" >/dev/null 2>&1 || true
           changed=$(git diff --name-only "$base"...HEAD)
