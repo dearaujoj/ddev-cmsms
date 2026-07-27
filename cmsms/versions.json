@@ -3,109 +3,109 @@
   "default": "2.2.22",
   "versions": {
     "2.2.22": {
-      "url": "https://dev.cmsmadesimple.org/frs/download/15249"
+      "url": "https://s3.amazonaws.com/cmsms-forge/downloads/15249/cmsms-2.2.22-install.zip"
     },
     "2.2.21": {
-      "url": "https://dev.cmsmadesimple.org/frs/download/15179"
+      "url": "https://s3.amazonaws.com/cmsms-forge/downloads/15179/cmsms-2.2.21-install.zip"
     },
     "2.2.20": {
-      "url": "https://dev.cmsmadesimple.org/frs/download/15173"
+      "url": "https://s3.amazonaws.com/cmsms-forge/downloads/15173/cmsms-2.2.20-install.zip"
     },
     "2.2.19": {
-      "url": "https://dev.cmsmadesimple.org/frs/download/15134"
+      "url": "https://s3.amazonaws.com/cmsms-forge/downloads/15134/cmsms-2.2.19-install.zip"
     },
     "2.2.18": {
-      "url": "https://dev.cmsmadesimple.org/frs/download/15079"
+      "url": "https://s3.amazonaws.com/cmsms-forge/downloads/15079/cmsms-2.2.18-install.zip"
     },
     "2.2.17": {
-      "url": "https://dev.cmsmadesimple.org/frs/download/15057"
+      "url": "https://s3.amazonaws.com/cmsms-forge/downloads/15057/cmsms-2.2.17-install.zip"
     },
     "2.2.16": {
-      "url": "https://dev.cmsmadesimple.org/frs/download/14953"
+      "url": "https://s3.amazonaws.com/cmsms-forge/downloads/14953/cmsms-2.2.16-install.zip"
     },
     "2.2.15": {
-      "url": "https://dev.cmsmadesimple.org/frs/download/14832"
+      "url": "https://s3.amazonaws.com/cmsms-forge/downloads/14832/cmsms-2.2.15-install.zip"
     },
     "2.2.14": {
-      "url": "https://dev.cmsmadesimple.org/frs/download/14793"
+      "url": "https://s3.amazonaws.com/cmsms-forge/downloads/14793/cmsms-2.2.14-install.zip"
     },
     "2.2.13": {
-      "url": "https://dev.cmsmadesimple.org/frs/download/14756"
+      "url": "https://s3.amazonaws.com/cmsms-forge/downloads/14756/cmsms-2.2.13-install.zip"
     },
     "2.2.12": {
-      "url": "https://dev.cmsmadesimple.org/frs/download/14682"
+      "url": "https://s3.amazonaws.com/cmsms-forge/downloads/14682/cmsms-2.2.12-install.zip"
     },
     "2.2.11": {
-      "url": "https://dev.cmsmadesimple.org/frs/download/14652"
+      "url": "https://s3.amazonaws.com/cmsms-forge/downloads/14652/cmsms-2.2.11-install.zip"
     },
     "2.2.10": {
-      "url": "https://dev.cmsmadesimple.org/frs/download/14356"
+      "url": "https://s3.amazonaws.com/cmsms-forge/downloads/14356/cmsms-2.2.10-install.zip"
     },
     "2.2.9.1": {
-      "url": "https://dev.cmsmadesimple.org/frs/download/14316"
+      "url": "https://s3.amazonaws.com/cmsms-forge/downloads/14316/cmsms-2.2.9.1-install.zip"
     },
     "2.2.9": {
-      "url": "https://dev.cmsmadesimple.org/frs/download/14310"
+      "url": "https://s3.amazonaws.com/cmsms-forge/downloads/14310/cmsms-2.2.9-install.zip"
     },
     "2.2.8": {
-      "url": "https://dev.cmsmadesimple.org/frs/download/14202"
+      "url": "https://s3.amazonaws.com/cmsms-forge/downloads/14202/cmsms-2.2.8-install.zip"
     },
     "2.2.7": {
-      "url": "https://dev.cmsmadesimple.org/frs/download/14144"
+      "url": "https://s3.amazonaws.com/cmsms-forge/downloads/14144/cmsms-2.2.7-install.zip"
     },
     "2.2.6": {
-      "url": "https://dev.cmsmadesimple.org/frs/download/14123"
+      "url": "https://s3.amazonaws.com/cmsms-forge/downloads/14123/cmsms-2.2.6-install.zip"
     },
     "2.2.5": {
-      "url": "https://dev.cmsmadesimple.org/frs/download/14076"
+      "url": "https://s3.amazonaws.com/cmsms-forge/downloads/14076/cmsms-2.2.5-install.zip"
     },
     "2.2.4": {
-      "url": "https://dev.cmsmadesimple.org/frs/download/14054"
+      "url": "https://s3.amazonaws.com/cmsms-forge/downloads/14054/cmsms-2.2.4-install.zip"
     },
     "2.2.3.1": {
-      "url": "https://dev.cmsmadesimple.org/frs/download/13927"
+      "url": "https://s3.amazonaws.com/cmsms-forge/downloads/13927/cmsms-2.2.3.1-install.zip"
     },
     "2.2.3": {
-      "url": "https://dev.cmsmadesimple.org/frs/download/13892"
+      "url": "https://s3.amazonaws.com/cmsms-forge/downloads/13892/cmsms-2.2.3-install.zip"
     },
     "2.2.2": {
-      "url": "https://dev.cmsmadesimple.org/frs/download/13806"
+      "url": "https://s3.amazonaws.com/cmsms-forge/downloads/13806/cmsms-2.2.2-install.zip"
     },
     "2.2.1": {
-      "url": "https://dev.cmsmadesimple.org/frs/download/13728"
+      "url": "https://s3.amazonaws.com/cmsms-forge/downloads/13728/cmsms-2.2.1-install.zip"
     },
     "2.2": {
-      "url": "https://dev.cmsmadesimple.org/frs/download/13723"
+      "url": "https://s3.amazonaws.com/cmsms-forge/downloads/13723/cmsms-2.2-install.zip"
     },
     "2.1.6": {
-      "url": "https://dev.cmsmadesimple.org/frs/download/13570"
+      "url": "https://s3.amazonaws.com/cmsms-forge/downloads/13570/cmsms-2.1.6-install.zip"
     },
     "2.1.5": {
-      "url": "https://dev.cmsmadesimple.org/frs/download/13469"
+      "url": "https://s3.amazonaws.com/cmsms-forge/downloads/13469/cmsms-2.1.5-install.zip"
     },
     "2.1.4": {
-      "url": "https://dev.cmsmadesimple.org/frs/download/13369"
+      "url": "https://s3.amazonaws.com/cmsms-forge/downloads/13369/cmsms-2.1.4-install.zip"
     },
     "2.1.3": {
-      "url": "https://dev.cmsmadesimple.org/frs/download/13232"
+      "url": "https://s3.amazonaws.com/cmsms-forge/downloads/13232/cmsms-2.1.3-install.zip"
     },
     "2.1.2": {
-      "url": "https://dev.cmsmadesimple.org/frs/download/13104"
+      "url": "https://s3.amazonaws.com/cmsms-forge/downloads/13104/cmsms-2.1.2-install.zip"
     },
     "2.1.1": {
-      "url": "https://dev.cmsmadesimple.org/frs/download/12966"
+      "url": "https://s3.amazonaws.com/cmsms-forge/downloads/12966/cmsms-2.1.1-install.zip"
     },
     "2.1": {
-      "url": "https://dev.cmsmadesimple.org/frs/download/12954"
+      "url": "https://s3.amazonaws.com/cmsms-forge/downloads/12954/cmsms-2.1-install.zip"
     },
     "2.0.1.1": {
-      "url": "https://dev.cmsmadesimple.org/frs/download/12882"
+      "url": "https://s3.amazonaws.com/cmsms-forge/downloads/12882/cmsms-2.0.1.1-install.zip"
     },
     "2.0.1": {
-      "url": "https://dev.cmsmadesimple.org/frs/download/12879"
+      "url": "https://s3.amazonaws.com/cmsms-forge/downloads/12879/cmsms-2.0.1-install.zip"
     },
     "2.0": {
-      "url": "https://dev.cmsmadesimple.org/frs/download/12842"
+      "url": "https://s3.amazonaws.com/cmsms-forge/downloads/12842/cmsms-2.0-install.zip"
     }
   }
 }

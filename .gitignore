@@ -3,6 +3,7 @@ tests/tmp/
 # OS / IDE / local tooling — never ship in the add-on
 .DS_Store
 .idea/
+.kiro/
 .vscode/
 .claude/
 .superpowers/
