@@ -119,8 +119,70 @@ link_entries() {
   done
 }
 
+# One workspace entry: link + register. Dies on failure — ALWAYS call this
+# inside a subshell so a failing entry skips instead of aborting the loop
+# (die() calls exit; hook safety requires the loop to survive).
+link_workspace_entry() {
+  local etype=$1 ename=$2
+  case "$etype" in
+    module)
+      [ -f "$PROJECT_ROOT/$ename/$ename.module.php" ] || die "link: no $ename/$ename.module.php"
+      log "link: module $ename"
+      # whole-dir symlink is cycle-safe here: .cmsms lives at the WORKSPACE
+      # root, not inside the extension subdir (unlike single mode, where the
+      # repo root contains .cmsms and needs per-entry links)
+      # modules/<Name> -> ../../../<Name>  (modules -> public -> .cmsms = html)
+      ln -sfn "../../../$ename" "$DOCROOT/modules/$ename"
+      php "$PAYLOAD_DIR/register-extension.php" "$DOCROOT" module "$ename" || die "module registration failed for $ename"
+      ;;
+    plugin)
+      local f found=0
+      mkdir -p "$DOCROOT/plugins"
+      for f in "$PROJECT_ROOT/$ename"/function.*.php "$PROJECT_ROOT/$ename"/modifier.*.php; do
+        [ -e "$f" ] || continue
+        found=1
+        # plugins/<file> -> ../../../<Name>/<file>  (plugins -> public -> .cmsms -> html)
+        ln -sfn "../../../$ename/$(basename "$f")" "$DOCROOT/plugins/$(basename "$f")"
+      done
+      [ "$found" = 1 ] || die "link: no function.*.php / modifier.*.php in $ename/"
+      log "link: plugin dir $ename"
+      ;;
+    theme)
+      [ -f "$PROJECT_ROOT/$ename/${ename}Theme.php" ] || die "link: no $ename/${ename}Theme.php"
+      log "link: admin theme $ename"
+      ln -sfn "../../../../$ename" "$DOCROOT/admin/themes/$ename"
+      php "$PAYLOAD_DIR/register-extension.php" "$DOCROOT" theme "$ename" || die "theme registration failed for $ename"
+      ;;
+  esac
+}
+
+# Loop CMSMS_EXTENSIONS in declaration order (= install order, so users list
+# dependencies before dependents). Individual failures warn and skip.
+stage_link_workspace() {
+  local entry etype ename ok=0 skipped=0
+  for entry in $CMSMS_EXTENSIONS; do
+    etype=${entry%%:*}; ename=${entry#*:}
+    if ! printf '%s' "$entry" | grep -Eq '^(module|plugin|theme):[A-Za-z0-9_]+$'; then
+      log "warning: invalid CMSMS_EXTENSIONS entry '$entry' — skipped"
+      skipped=$((skipped+1))
+      continue
+    fi
+    if ( link_workspace_entry "$etype" "$ename" ); then
+      ok=$((ok+1))
+    else
+      log "warning: $entry failed (see above) — skipped"
+      skipped=$((skipped+1))
+    fi
+  done
+  log "link: workspace done ($ok linked, $skipped skipped)"
+}
+
 stage_link() {
   is_installed || die "link: site not installed yet (run 'cmsms-install db' first)"
+  if [ -n "${CMSMS_EXTENSIONS:-}" ]; then
+    stage_link_workspace
+    return 0
+  fi
   [ -n "${CMSMS_EXT_TYPE:-}" ] || die "link: CMSMS_EXT_TYPE not set — run 'ddev cmsms setup'"
   [ -n "${CMSMS_EXT_NAME:-}" ] || die "link: CMSMS_EXT_NAME not set — run 'ddev cmsms setup'"
 
@@ -177,7 +239,7 @@ core_version() {
 
 stage_all() {
   if is_installed; then
-    if [ -n "${CMSMS_EXT_TYPE:-}" ]; then
+    if [ -n "${CMSMS_EXT_TYPE:-}${CMSMS_EXTENSIONS:-}" ]; then
       log "already installed (CMSMS $(core_version)) — refreshing links"
       # Contained in a subshell: stage_link's die() calls `exit`, which would
       # otherwise take down this whole script (and the ddev-start post-hook
@@ -189,8 +251,8 @@ stage_all() {
     log "already installed (CMSMS $(core_version)) — nothing to do"
     return 0
   fi
-  if [ -z "${CMSMS_EXT_TYPE:-}" ]; then
-    log "no CMSMS_EXT_TYPE set — run 'ddev cmsms setup' first, then 'ddev restart'"
+  if [ -z "${CMSMS_EXT_TYPE:-}${CMSMS_EXTENSIONS:-}" ]; then
+    log "no CMSMS_EXT_TYPE/CMSMS_EXTENSIONS set — run 'ddev cmsms setup' first, then 'ddev restart'"
     return 0
   fi
   stage_fetch
